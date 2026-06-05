@@ -1,26 +1,27 @@
 -- =====================================================
--- MINI LOAN + INVESTMENT SYSTEM (SQLite Schema)
--- Clean CS50-style structure
+-- MINI LOAN + INVESTMENT SYSTEM (PostgreSQL Schema)
 -- =====================================================
 
-PRAGMA foreign_keys = ON;
+-- Note: PostgreSQL enables Foreign Key checks by default. 
+-- No PRAGMA statements are required.
 
 -- =====================================================
 -- MEMBERS TABLE (Investors / Contributors)
 -- =====================================================
 
 CREATE TABLE members (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    full_name TEXT NOT NULL,
-    password_hash TEXT NOT NULL,
-    username TEXT NOT NULL UNIQUE,
-    phone TEXT,
-    email TEXT,
+    id SERIAL PRIMARY KEY,
+    full_name VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    username VARCHAR(100) NOT NULL UNIQUE,
+    phone VARCHAR(50),
+    email VARCHAR(255),
     address TEXT,
+    profile_photo TEXT,
     date_joined DATE DEFAULT CURRENT_DATE,
-    contributions REAL NOT NULL DEFAULT 0,
-    role TEXT NOT NULL DEFAULT 'staff', -- admin / staff
-    status TEXT NOT NULL DEFAULT 'active' -- active / inactive
+    contributions NUMERIC(15, 2) NOT NULL DEFAULT 0.00,
+    role VARCHAR(50) NOT NULL DEFAULT 'staff', -- admin / staff
+    status VARCHAR(50) NOT NULL DEFAULT 'active' -- active / inactive
 );
 
 
@@ -30,18 +31,18 @@ CREATE TABLE members (
 -- =====================================================
 
 CREATE TABLE contributions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     member_id INTEGER NOT NULL,
-    amount REAL NOT NULL CHECK(amount > 0),
+    amount NUMERIC(15, 2) NOT NULL CHECK(amount > 0),
     contribution_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    payment_method TEXT, -- cash / transfer / POS
-    reference TEXT,
+    payment_method VARCHAR(50), -- cash / transfer / POS
+    reference VARCHAR(100),
     notes TEXT,
     created_by INTEGER,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
 
-    FOREIGN KEY (member_id) REFERENCES members(id),
-    FOREIGN KEY (created_by) REFERENCES members(id)
+    CONSTRAINT fk_contributions_member FOREIGN KEY (member_id) REFERENCES members(id),
+    CONSTRAINT fk_contributions_creator FOREIGN KEY (created_by) REFERENCES members(id)
 );
 
 
@@ -51,14 +52,14 @@ CREATE TABLE contributions (
 -- =====================================================
 
 CREATE TABLE borrowers (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    full_name TEXT NOT NULL,
-    phone TEXT,
+    id SERIAL PRIMARY KEY,
+    full_name VARCHAR(255) NOT NULL,
+    phone VARCHAR(50),
     address TEXT,
-    occupation TEXT,
-    total_loan INTEGER NOT NULL DEFAULT 0,
-    guarantor_name TEXT,
-    guarantor_phone TEXT,
+    occupation VARCHAR(100),
+    total_loan NUMERIC(15, 2) NOT NULL DEFAULT 0.00,
+    guarantor_name VARCHAR(255),
+    guarantor_phone VARCHAR(50),
     date_registered DATE DEFAULT CURRENT_DATE
 );
 
@@ -69,28 +70,28 @@ CREATE TABLE borrowers (
 -- =====================================================
 
 CREATE TABLE loans (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     borrower_id INTEGER NOT NULL,
 
-    principal REAL NOT NULL CHECK(principal > 0),
-    interest_rate REAL NOT NULL CHECK(interest_rate >= 0),
-    interest_amount REAL NOT NULL DEFAULT 0,
+    principal NUMERIC(15, 2) NOT NULL CHECK(principal > 0),
+    interest_rate NUMERIC(5, 2) NOT NULL CHECK(interest_rate >= 0),
+    interest_amount NUMERIC(15, 2) NOT NULL DEFAULT 0.00,
 
-    total_repayable REAL NOT NULL DEFAULT 0,
-    amount_paid REAL NOT NULL DEFAULT 0,
-    balance_remaining REAL NOT NULL DEFAULT 0,
+    total_repayable NUMERIC(15, 2) NOT NULL DEFAULT 0.00,
+    amount_paid NUMERIC(15, 2) NOT NULL DEFAULT 0.00,
+    balance_remaining NUMERIC(15, 2) NOT NULL DEFAULT 0.00,
 
     loan_start_date DATE NOT NULL,
     due_date DATE NOT NULL,
 
-    status TEXT NOT NULL DEFAULT 'active',
+    status VARCHAR(50) NOT NULL DEFAULT 'active',
     -- active / completed / defaulted / overdue
 
     created_by INTEGER,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
 
-    FOREIGN KEY (borrower_id) REFERENCES borrowers(id),
-    FOREIGN KEY (created_by) REFERENCES members(id)
+    CONSTRAINT fk_loans_borrower FOREIGN KEY (borrower_id) REFERENCES borrowers(id),
+    CONSTRAINT fk_loans_creator FOREIGN KEY (created_by) REFERENCES members(id)
 );
 
 
@@ -100,53 +101,51 @@ CREATE TABLE loans (
 -- =====================================================
 
 CREATE TABLE fees (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     loan_id INTEGER NOT NULL,
 
-    fee_type TEXT NOT NULL,
+    fee_type VARCHAR(100) NOT NULL,
     -- stamp duty / transfer fee / bank charge / processing fee
 
-    amount REAL NOT NULL CHECK(amount >= 0),
+    amount NUMERIC(15, 2) NOT NULL CHECK(amount >= 0),
 
-    payer_type TEXT NOT NULL,
+    payer_type VARCHAR(50) NOT NULL,
     -- member / borrower / admin
 
     payer_id INTEGER,
-    is_refunded INTEGER NOT NULL DEFAULT 0,
-    -- 0 = False, 1 = True
-
+    is_refunded BOOLEAN NOT NULL DEFAULT FALSE, -- Converted from integer to native BOOLEAN
+    
     refund_date TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
 
-    FOREIGN KEY (loan_id) REFERENCES loans(id)
+    CONSTRAINT fk_fees_loan FOREIGN KEY (loan_id) REFERENCES loans(id)
 );
 
 
 -- =====================================================
 -- TRANSACTIONS TABLE
 -- Master financial history table
--- EVERYTHING enters here
 -- =====================================================
 
 CREATE TABLE transactions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
 
-    transaction_type TEXT NOT NULL,
+    transaction_type VARCHAR(100) NOT NULL,
     -- contribution / loan_disbursement / repayment
     -- refund / withdrawal / expense / bank_charge
 
-    amount REAL NOT NULL CHECK(amount > 0),
+    amount NUMERIC(15, 2) NOT NULL CHECK(amount > 0),
 
     description TEXT,
 
     reference_id INTEGER,
-    reference_table TEXT,
+    reference_table VARCHAR(100),
     -- loans / fees / contributions / withdrawals
 
     created_by INTEGER,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
 
-    FOREIGN KEY (created_by) REFERENCES members(id)
+    CONSTRAINT fk_transactions_creator FOREIGN KEY (created_by) REFERENCES members(id)
 );
 
 
@@ -156,17 +155,17 @@ CREATE TABLE transactions (
 -- =====================================================
 
 CREATE TABLE audit_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
 
     member_id INTEGER,
-    action TEXT NOT NULL,
+    action VARCHAR(100) NOT NULL,
     -- create / update / delete / refund
 
-    table_name TEXT NOT NULL,
+    table_name VARCHAR(100) NOT NULL,
     record_id INTEGER NOT NULL,
 
     description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
 
-    FOREIGN KEY (member_id) REFERENCES members(id)
+    CONSTRAINT fk_audit_member FOREIGN KEY (member_id) REFERENCES members(id)
 );
