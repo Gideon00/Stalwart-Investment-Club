@@ -1,0 +1,35 @@
+<nav aria-label="Main Navigation"
+     class="fixed bottom-0 left-0 w-full pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex justify-around items-stretch px-4 bg-surface-container-lowest dark:bg-inverse-surface shadow-lg z-50 rounded-t-xl transition-colors duration-200">
+    
+    <a href="{{ url_for('dashboard.view_dashboard') }}"
+       class="flex-1 flex flex-col items-center justify-center gap-1 hover:opacity-80 active:scale-95 transition-all duration-150 {% if active_page == 'dashboard' %}text-on-secondary-container dark:text-secondary-fixed font-semibold{% else %}text-on-surface-variant dark:text-outline-variant font-medium{% endif %}">
+        <div class="flex items-center justify-center rounded-full px-5 py-1 transition-colors {% if active_page == 'dashboard' %}bg-secondary-container dark:bg-on-secondary-fixed-variant{% endif %}">
+            <span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' {% if active_page == 'dashboard' %}1{% else %}0{% endif %};">dashboard</span>
+        </div>
+        <span class="text-label-md tracking-wide">Dashboard</span>
+    </a>
+
+    <a href="{{ url_for('members.list_members') }}"
+       class="flex-1 flex flex-col items-center justify-center gap-1 hover:opacity-80 active:scale-95 transition-all duration-150 {% if active_page == 'members' %}text-on-secondary-container dark:text-secondary-fixed font-semibold{% else %}text-on-surface-variant dark:text-outline-variant font-medium{% endif %}">
+        <div class="flex items-center justify-center rounded-full px-5 py-1 transition-colors {% if active_page == 'members' %}bg-secondary-container dark:bg-on-secondary-fixed-variant{% endif %}">
+            <span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' {% if active_page == 'members' %}1{% else %}0{% endif %};">group</span>
+        </div>
+        <span class="text-label-md tracking-wide">Members</span>
+    </a>
+
+    <a href="{{ url_for('loans.view_loans') }}"
+       class="flex-1 flex flex-col items-center justify-center gap-1 hover:opacity-80 active:scale-95 transition-all duration-150 {% if active_page == 'loans' %}text-on-secondary-container dark:text-secondary-fixed font-semibold{% else %}text-on-surface-variant dark:text-outline-variant font-medium{% endif %}">
+        <div class="flex items-center justify-center rounded-full px-5 py-1 transition-colors {% if active_page == 'loans' %}bg-secondary-container dark:bg-on-secondary-fixed-variant{% endif %}">
+            <span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' {% if active_page == 'loans' %}1{% else %}0{% endif %};">payments</span>
+        </div>
+        <span class="text-label-md tracking-wide">Loans</span>
+    </a>
+
+    <a href="{{ url_for('transactions.list_transactions') }}"
+       class="flex-1 flex flex-col items-center justify-center gap-1 hover:opacity-90 active:scale-95 transition-all duration-150 {% if active_page == 'transactions' %}text-on-secondary-container dark:text-secondary-fixed font-semibold{% else %}text-on-surface-variant dark:text-outline-variant font-medium{% endif %}">
+        <div class="flex items-center justify-center rounded-full px-5 py-1 transition-colors {% if active_page == 'transactions' %}bg-secondary-container dark:bg-on-secondary-fixed-variant{% endif %}">
+            <span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' {% if active_page == 'transactions' %}1{% else %}0{% endif %};">receipt_long</span>
+        </div>
+        <span class="text-label-md tracking-wide">Transactions</span>
+    </a>
+</nav>
