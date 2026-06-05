@@ -1,22 +1,30 @@
 <header class="w-full sticky top-0 z-40 bg-surface dark:bg-on-surface shadow-sm">
     <div class="flex items-center justify-between px-md py-sm max-w-container-max mx-auto">
         <div class="flex items-center gap-md">
-            <!-- <button class="text-primary dark:text-primary-fixed-dim hover:bg-surface-container-low p-2 rounded-full transition-colors active:scale-95 duration-150">
-                <span class="material-symbols-outlined" data-icon="menu">menu</span>
-            </button> -->
             <div class="flex flex-col">
-                <h1 class="font-headline-md text-headline-md-mobile md:text-headline-md font-bold text-primary dark:text-primary-fixed-dim">
+                <h1
+                    class="font-headline-md text-headline-md-mobile md:text-headline-md font-bold text-primary dark:text-primary-fixed-dim">
                     {% block page_heading %}Stalwart Club{% endblock %}
                 </h1>
                 {% block header_meta %}{% endblock %}
             </div>
         </div>
         <div class="flex items-center gap-md">
-            <button class="hidden md:flex text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors">
+            <button
+                class="hidden md:flex text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors">
                 <span class="material-symbols-outlined" data-icon="notifications">notifications</span>
             </button>
-            <img alt="User Profile" class="w-10 h-10 rounded-full border-2 border-primary-fixed shadow-sm"
-                 src="static/img/rabboni-2.jpg" />
+            {% if session.get('profile') %}
+            <img alt="User Profile" class="w-10 h-10 rounded-full border-2 border-primary-fixed shadow-sm object-cover"
+                src="https://lh3.googleusercontent.com/d/{{ session['profile'] }}"
+                onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name={{ session.get('username', 'User') }}&background=random';" />
+            {% else %}
+            <div    
+                class="w-10 h-10 rounded-full border-2 border-dashed border-outline-variant bg-surface-container flex items-center justify-center text-on-surface-variant font-bold text-sm">
+                {{ session.get('username', 'U')[0].upper() }}
+            </div>
+            {% endif %}
+
         </div>
     </div>
 </header>
