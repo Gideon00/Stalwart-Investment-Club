@@ -33,6 +33,7 @@ def login():
                 session['username']  = user['username']
                 session['full_name'] = user['full_name']
                 session['role']      = user['role']
+                session['profile']      = user['profile_photo']
                 flash(f"Welcome back, {user['full_name']}.", "success")
                 return redirect(url_for('dashboard.view_dashboard'))
             else:
