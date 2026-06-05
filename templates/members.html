@@ -1,0 +1,154 @@
+{% extends 'layout.html' %}
+
+{% block title %}Members Directory | Stalwart Club{% endblock %}
+
+{% block page_heading %}Members{% endblock %}
+
+{% block content %}
+<section class="mb-lg">
+    <div class="flex flex-col md:flex-row gap-md items-center">
+        <div class="relative w-full md:max-w-md">
+            <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">search</span>
+            <input id="memberDirectorySearch"
+                class="w-full pl-12 pr-4 py-3 bg-surface-container-lowest border-none rounded-xl soft-shadow focus:ring-2 focus:ring-primary outline-none text-body-md transition-all"
+                placeholder="Search members by name or ID..." type="text" />
+        </div>
+        <div class="flex gap-sm w-full md:w-auto">
+            <button
+                class="flex items-center gap-2 px-md py-3 bg-surface-container-low hover:bg-surface-container-high rounded-xl text-primary font-label-md transition-colors active:scale-95">
+                <span class="material-symbols-outlined text-base">filter_list</span>
+                Filter
+            </button>
+            <a href="{{ url_for('members.add_member') }}"
+                class="flex items-center gap-2 px-md py-3 bg-primary text-on-primary rounded-xl font-label-md transition-colors hover:opacity-90 active:scale-95 ml-auto md:ml-0 shadow-sm">
+                <span class="material-symbols-outlined text-base">person_add</span>
+                <span>Add Member</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<section class="grid grid-cols-1 md:grid-cols-3 gap-md mb-xl">
+    <div class="bg-surface-container-lowest p-lg rounded-xl soft-shadow border border-surface-variant/20">
+        <p class="text-on-surface-variant font-label-md uppercase tracking-wider mb-xs">Total Members</p>
+        <h3 class="font-headline-md text-primary font-bold">{{ total_members }}</h3>
+        <p class="text-on-surface-variant font-label-md mt-sm">Registered in system</p>
+    </div>
+    <div class="bg-surface-container-lowest p-lg rounded-xl soft-shadow border border-surface-variant/20">
+        <p class="text-on-surface-variant font-label-md uppercase tracking-wider mb-xs">Avg. Contribution</p>
+        <h3 class="font-headline-md text-primary font-bold">₦{{ "{:,.0f}".format(avg_contribution) }}</h3>
+        <p class="text-on-surface-variant font-label-md mt-sm">Per member</p>
+    </div>
+    <div class="bg-surface-container-lowest p-lg rounded-xl soft-shadow border border-surface-variant/20">
+        <p class="text-on-surface-variant font-label-md uppercase tracking-wider mb-xs">Active Share</p>
+        <h3 class="font-headline-md text-primary font-bold">{{ active_share }}%</h3>
+        <div class="w-full bg-surface-variant h-2 rounded-full mt-sm overflow-hidden">
+            <div class="bg-secondary h-full rounded-full" style="width: {{ active_share }}%"></div>
+        </div>
+    </div>
+</section>
+
+<div class="bg-surface-container-lowest rounded-xl soft-shadow overflow-hidden border border-surface-variant/10">
+    <div
+        class="hidden md:grid grid-cols-12 gap-md px-lg py-md bg-surface-container-low border-b border-surface-variant/30 text-outline font-label-md uppercase">
+        <div class="col-span-4">Member</div>
+        <div class="col-span-2 text-right">Joined</div>
+        <div class="col-span-2 text-right">Phone</div>
+        <div class="col-span-2 text-right">Role</div>
+        <div class="col-span-1 text-center">Status</div>
+        <div class="col-span-1 text-right">Actions</div>
+    </div>
+
+    <div class="divide-y divide-surface-variant/30">
+        {% for member in members %}
+        <div
+            class="member-table-row grid grid-cols-1 md:grid-cols-12 gap-md px-lg py-lg md:py-md items-center hover:bg-surface-container-low transition-colors group cursor-pointer">
+
+            {# Avatar + name #}
+            <div class="col-span-1 md:col-span-4 flex items-center gap-md">
+                <div
+                    class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-semibold text-sm shrink-0">
+                    {{ member['full_name'][:2].upper() }}
+                </div>
+                <div>
+                    <p class="font-body-md font-semibold text-on-surface">{{ member['full_name'] }}</p>
+                    <p class="text-on-surface-variant text-body-sm">@{{ member['username'] }}</p>
+                </div>
+            </div>
+
+            {# Joined date in place of contributions — contributions need a separate query #}
+            <div class="col-span-1 md:col-span-2 text-right">
+                <span class="md:hidden text-outline font-label-md block mb-1">Joined</span>
+                <p class="font-body-sm text-on-surface">{{ member['date_joined'] or '—' }}</p>
+            </div>
+
+            {# Phone #}
+            <div class="col-span-1 md:col-span-2 text-right">
+                <span class="md:hidden text-outline font-label-md block mb-1">Phone</span>
+                <p class="font-body-sm text-on-surface">{{ member['phone'] or '—' }}</p>
+            </div>
+
+            {# Role #}
+            <div class="col-span-1 md:col-span-2 text-right">
+                <span class="md:hidden text-outline font-label-md block mb-1">Role</span>
+                <p class="font-body-sm text-on-surface capitalize">{{ member['role'] }}</p>
+            </div>
+
+            {# Status badge #}
+            <div class="col-span-1 md:col-span-1 flex md:justify-center">
+                <span class="md:hidden text-outline font-label-md mr-3">Status:</span>
+                {% if member['status'] == 'active' %}
+                <span
+                    class="px-3 py-1 bg-secondary-container text-on-secondary-container text-label-md rounded-full">Active</span>
+                {% else %}
+                <span
+                    class="px-3 py-1 bg-surface-variant text-on-surface-variant text-label-md rounded-full">Inactive</span>
+                {% endif %}
+            </div>
+
+            {# Actions #}
+            <div class="col-span-1 md:col-span-1 flex justify-end gap-sm relative z-10">
+                <button class="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors active:scale-95"
+                    title="View Details">
+                    <span class="material-symbols-outlined">visibility</span>
+                </button>
+                <button class="p-2 text-outline hover:bg-surface-variant rounded-lg transition-colors active:scale-95"
+                    title="Edit Member">
+                    <span class="material-symbols-outlined">edit</span>
+                </button>
+            </div>
+        </div>
+        {% else %}
+        <div class="p-lg text-center text-on-surface-variant">
+            <span class="material-symbols-outlined text-4xl opacity-20 mb-sm block">group_off</span>
+            <p class="text-body-md">No members registered yet.</p>
+        </div>
+        {% endfor %}
+
+        {% endblock %}
+
+        {% block scripts %}
+        <script>
+            // Decoupled clean interface micro-interactions routing
+            document.querySelectorAll('.member-table-row').forEach(row => {
+                row.addEventListener('click', (e) => {
+                    // Prevent bubbling disruption if action buttons are targeted directly
+                    if (e.target.closest('button')) return;
+
+                    console.log('Routing to member ledger card...');
+                });
+            });
+
+            // Instant matching search routing logic
+            const searchInput = document.getElementById('memberDirectorySearch');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    const query = e.target.value.toLowerCase();
+                    document.querySelectorAll('.member-table-row').forEach(row => {
+                        const searchableText = row.textContent.toLowerCase();
+                        row.style.display = searchableText.includes(query) ? '' : 'none';
+                    });
+                });
+            }
+        </script>
+        {% endblock %}

@@ -1,0 +1,275 @@
+{% extends 'layout.html' %}
+
+{% block title %}Record Repayment | Stalwart Club{% endblock %}
+{% block page_heading %}Record Repayment{% endblock %}
+
+{% block content %}
+<div class="mb-lg">
+    <p class="text-on-surface-variant font-body-md text-body-md">
+        Log a repayment against loan <span class="font-semibold text-on-surface">STW-{{ "%04d" | format(loan['id'])
+            }}-LO</span>
+        for <span class="font-semibold text-on-surface">{{ loan['borrower_name'] }}</span>.
+    </p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-lg items-start">
+
+    {# ── Left: form ── #}
+    <section
+        class="lg:col-span-8 bg-surface-container-lowest rounded-xl p-lg border border-surface-variant/10 shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
+
+        {# Loan snapshot #}
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-md mb-lg">
+            <div class="bg-surface-container-low rounded-lg p-md">
+                <p class="text-on-surface-variant font-label-md uppercase tracking-wider mb-xs text-[11px]">Principal
+                </p>
+                <p class="font-numeric-data text-on-surface font-semibold">₦{{ "{:,.2f}".format(loan['principal']) }}
+                </p>
+            </div>
+            <div class="bg-surface-container-low rounded-lg p-md">
+                <p class="text-on-surface-variant font-label-md uppercase tracking-wider mb-xs text-[11px]">Total
+                    Repayable</p>
+                <p class="font-numeric-data text-on-surface font-semibold">₦{{ "{:,.2f}".format(loan['total_repayable'])
+                    }}</p>
+            </div>
+            <div class="bg-surface-container-low rounded-lg p-md">
+                <p class="text-on-surface-variant font-label-md uppercase tracking-wider mb-xs text-[11px]">Amount Paid
+                </p>
+                <p class="font-numeric-data text-secondary font-semibold">₦{{ "{:,.2f}".format(loan['amount_paid']) }}
+                </p>
+            </div>
+            <div class="bg-surface-container-low rounded-lg p-md">
+                <p class="text-on-surface-variant font-label-md uppercase tracking-wider mb-xs text-[11px]">Balance</p>
+                <p class="font-numeric-data text-error font-semibold">₦{{ "{:,.2f}".format(loan['balance_remaining']) }}
+                </p>
+            </div>
+        </div>
+
+        {# Progress bar #}
+        {% set progress = ((loan['amount_paid'] / loan['total_repayable']) * 100) | round | int if
+        loan['total_repayable'] > 0 else 0 %}
+        <div class="mb-lg">
+            <div class="flex justify-between items-center mb-xs">
+                <span class="font-label-md text-on-surface-variant text-[11px] uppercase tracking-wider">Repayment
+                    progress</span>
+                <span class="font-numeric-data text-on-surface text-[13px]">{{ progress }}%</span>
+            </div>
+            <div class="w-full bg-surface-variant h-2 rounded-full overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-700
+                    {% if progress == 100 %}bg-secondary
+                    {% elif loan['status'] in ['overdue', 'defaulted'] %}bg-error
+                    {% else %}bg-primary{% endif %}" style="width: {{ progress }}%"></div>
+            </div>
+        </div>
+
+        {# Status badge #}
+        <div class="flex items-center gap-sm mb-lg">
+            <span class="font-label-md text-on-surface-variant text-[11px] uppercase tracking-wider">Current
+                status:</span>
+            {% if loan['status'] == 'active' %}
+            <span
+                class="px-3 py-1 bg-primary-fixed text-primary text-label-md rounded-full text-[11px] font-semibold">Active</span>
+            {% elif loan['status'] == 'completed' %}
+            <span
+                class="px-3 py-1 bg-secondary-container text-on-secondary-container text-label-md rounded-full text-[11px] font-semibold">Completed</span>
+            {% elif loan['status'] == 'overdue' %}
+            <span
+                class="px-3 py-1 bg-error-container text-on-error-container text-label-md rounded-full text-[11px] font-semibold">Overdue</span>
+            {% elif loan['status'] == 'defaulted' %}
+            <span
+                class="px-3 py-1 bg-inverse-surface text-inverse-on-surface text-label-md rounded-full text-[11px] font-semibold">Defaulted</span>
+            {% endif %}
+            <span class="text-on-surface-variant font-label-md text-[11px]">· Due {{ loan['due_date']
+                }}</span>
+        </div>
+
+        <hr class="border-surface-container-highest mb-lg">
+
+        {# Repayment form #}
+        <form method="POST" id="repaymentForm" action="{{ url_for('loans.record_repayment', loan_id=loan['id']) }}">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-lg mb-lg">
+                <div class="flex flex-col gap-sm">
+                    <label class="font-body-sm text-body-sm font-semibold text-on-surface-variant px-1"
+                        for="payment_amount">Payment Amount</label>
+                    <div class="relative group">
+                        <span
+                            class="absolute left-md top-1/2 -translate-y-1/2 font-numeric-data text-outline group-focus-within:text-primary transition-colors">₦</span>
+                        <input required type="number" step="0.01" min="0.01" max="{{ loan['balance_remaining'] }}"
+                            id="payment_amount" name="payment_amount" placeholder="0.00"
+                            class="w-full h-12 pl-10 pr-md rounded-lg border-none bg-surface-container-low text-on-surface font-numeric-data placeholder:text-outline-variant focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <p class="text-[11px] text-on-surface-variant px-1">
+                        Max: ₦{{ "{:,.2f}".format(loan['balance_remaining']) }}
+                    </p>
+                </div>
+
+                <div class="flex flex-col gap-sm">
+                    <label class="font-body-sm text-body-sm font-semibold text-on-surface-variant px-1"
+                        for="payment_method">Payment Method</label>
+                    <div class="relative">
+                        <select id="payment_method" name="payment_method"
+                            class="w-full h-12 px-md rounded-lg border-none bg-surface-container-low text-on-surface appearance-none cursor-pointer focus:ring-2 focus:ring-primary/20">
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="Cash">Cash</option>
+                            <option value="POS Terminal">POS Terminal</option>
+                        </select>
+                        <span
+                            class="material-symbols-outlined absolute right-md top-1/2 -translate-y-1/2 pointer-events-none text-outline">expand_more</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-sm mb-lg">
+                <label class="font-body-sm text-body-sm font-semibold text-on-surface-variant px-1" for="notes">Notes
+                    <span class="font-normal opacity-60">(optional)</span></label>
+                <textarea id="notes" name="notes" rows="3" placeholder="e.g. Cash received at monthly meeting..."
+                    class="w-full p-md rounded-lg border-none bg-surface-container-low text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary/20 resize-none"></textarea>
+            </div>
+
+            {# Live preview #}
+            <div class="bg-surface-container-low rounded-lg p-md mb-lg flex flex-col gap-sm" id="previewBox">
+                <div class="flex justify-between items-center">
+                    <span class="font-body-sm text-on-surface-variant">New balance after payment</span>
+                    <span class="font-numeric-data text-on-surface font-semibold" id="previewBalance">
+                        ₦{{ "{:,.2f}".format(loan['balance_remaining']) }}
+                    </span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="font-body-sm text-on-surface-variant">Projected status</span>
+                    <span class="font-semibold text-[13px]" id="previewStatus">—</span>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-md pt-md border-t border-surface-container-highest">
+                <a href="{{ url_for('loans.view_loans') }}">
+                    <button type="button"
+                        class="px-lg h-12 rounded-lg font-label-md text-primary border border-primary hover:bg-surface-container-low transition-all active:scale-95">
+                        Cancel
+                    </button>
+                </a>
+                <button type="submit" id="submitBtn"
+                    class="px-lg h-12 rounded-lg font-label-md text-on-primary bg-primary hover:opacity-90 transition-all active:scale-95 shadow-sm flex items-center gap-sm">
+                    <span class="material-symbols-outlined text-[20px]">payments</span>
+                    Record Repayment
+                </button>
+            </div>
+        </form>
+    </section>
+
+    {# ── Right: borrower info + history ── #}
+    <aside class="lg:col-span-4 flex flex-col gap-lg">
+
+        {# Borrower card #}
+        <div
+            class="bg-surface-container-lowest rounded-xl p-lg border border-surface-variant/10 shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
+            <h3 class="font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] mb-md">Borrower</h3>
+            <div class="flex items-center gap-md mb-md">
+                <div
+                    class="w-12 h-12 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-semibold shrink-0">
+                    {{ loan['borrower_name'][:2].upper() }}
+                </div>
+                <div>
+                    <p class="font-semibold text-on-surface">{{ loan['borrower_name'] }}</p>
+                    <p class="font-body-sm text-on-surface-variant text-[12px]">{{ loan['occupation'] or '—' }}</p>
+                </div>
+            </div>
+            <div class="space-y-sm border-t border-surface-container-highest pt-md">
+                <div class="flex justify-between">
+                    <span class="font-body-sm text-on-surface-variant">Phone</span>
+                    <span class="font-body-sm text-on-surface">{{ loan['phone'] or '—' }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-body-sm text-on-surface-variant">Start date</span>
+                    <span class="font-body-sm text-on-surface">{{ loan['loan_start_date'] }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-body-sm text-on-surface-variant">Due date</span>
+                    <span class="font-body-sm text-on-surface">{{ loan['due_date'] }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-body-sm text-on-surface-variant">Interest rate</span>
+                    <span class="font-body-sm text-on-surface">{{ loan['interest_rate'] }}% APR</span>
+                </div>
+            </div>
+        </div>
+
+        {# Repayment history #}
+        <div
+            class="bg-surface-container-lowest rounded-xl p-lg border border-surface-variant/10 shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
+            <h3 class="font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] mb-md">Repayment
+                History</h3>
+
+            {% if repayment_history %}
+            <div class="space-y-sm">
+                {% for txn in repayment_history %}
+                <div
+                    class="flex justify-between items-start py-sm border-b border-surface-container-highest last:border-0">
+                    <div>
+                        <p class="font-numeric-data text-secondary font-semibold text-[14px]">
+                            ₦{{ "{:,.2f}".format(txn['amount']) }}
+                        </p>
+                        <p class="text-[11px] text-on-surface-variant">
+                            {{ txn['created_at'] }}
+                        </p>
+                    </div>
+                    <span class="material-symbols-outlined text-secondary text-[18px]">check_circle</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-lg text-on-surface-variant">
+                <span class="material-symbols-outlined text-3xl opacity-25 block mb-xs">receipt_long</span>
+                <p class="font-body-sm text-[12px]">No repayments recorded yet.</p>
+            </div>
+            {% endif %}
+        </div>
+
+    </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const paymentInput = document.getElementById('payment_amount');
+    const previewBalance = document.getElementById('previewBalance');
+    const previewStatus = document.getElementById('previewStatus');
+    const currentBalance = {{ loan['balance_remaining'] }};
+    const totalRepayable = {{ loan['total_repayable'] }};
+    const dueDateStr = "{{ loan['due_date'] }}";
+
+    function deriveStatus(newBalance) {
+        if (newBalance <= 0) return { label: 'Completed', cls: 'text-secondary' };
+
+        const today = new Date();
+        const due = new Date(dueDateStr);
+        if (today > due) {
+            const daysOverdue = Math.floor((today - due) / (1000 * 60 * 60 * 24));
+            return daysOverdue > 30
+                ? { label: 'Defaulted', cls: 'text-error' }
+                : { label: 'Overdue', cls: 'text-error' };
+        }
+        return { label: 'Active', cls: 'text-primary' };
+    }
+
+    paymentInput.addEventListener('input', function () {
+        const payment = parseFloat(this.value) || 0;
+        const capped = Math.min(payment, currentBalance);
+        const newBalance = Math.max(0, currentBalance - capped);
+
+        previewBalance.textContent = '₦' + newBalance.toLocaleString('en-NG', {
+            minimumFractionDigits: 2, maximumFractionDigits: 2
+        });
+
+        const status = deriveStatus(newBalance);
+        previewStatus.textContent = status.label;
+        previewStatus.className = `font-semibold text-[13px] ${status.cls}`;
+    });
+
+    document.getElementById('repaymentForm').addEventListener('submit', function () {
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-[20px]">progress_activity</span> Processing...`;
+    });
+</script>
+{% endblock %}

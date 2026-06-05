@@ -1,0 +1,228 @@
+
+{% extends 'layout.html' %}
+
+{% block title %}Transactions | Stalwart Club{% endblock %}
+{% block page_heading %}Transactions{% endblock %}
+
+{% block content %}
+
+{# ── Search & filter bar ── #}
+<section class="mb-lg flex flex-col md:flex-row gap-md items-center justify-between bg-surface-container-lowest p-md rounded-xl shadow-sm">
+    <div class="relative w-full md:w-96">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+        <input id="tableSearchInput"
+               class="w-full pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-lg focus:ring-2 focus:ring-primary-container font-body-sm transition-all"
+               placeholder="Search by member, type or description..." type="text"/>
+    </div>
+    <div class="flex gap-sm w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+        <select id="typeFilter" class="px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-lg font-label-md border-none cursor-pointer">
+            <option value="">Type: All</option>
+            <option value="contribution">Contribution</option>
+            <option value="loan_disbursement">Loan Disbursement</option>
+            <option value="repayment">Repayment</option>
+            <option value="refund">Refund</option>
+            <option value="withdrawal">Withdrawal</option>
+            <option value="expense">Expense</option>
+            <option value="bank_charge">Bank Charge</option>
+        </select>
+    </div>
+</section>
+
+{# ── Summary cards ── #}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-md mb-xl">
+    <div class="bg-surface-container-lowest p-lg rounded-xl shadow-sm border-l-4 border-primary">
+        <p class="text-on-surface-variant font-label-md uppercase tracking-wider mb-2">Monthly Volume</p>
+        <h3 class="font-numeric-data text-headline-lg text-primary">
+            ₦{{ "{:,.2f}".format(stats['total_volume']) }}
+        </h3>
+        <p class="text-on-surface-variant font-label-md mt-2">{{ stats['total_count'] }} transactions this month</p>
+    </div>
+    <div class="bg-surface-container-lowest p-lg rounded-xl shadow-sm border-l-4 border-secondary">
+        <p class="text-on-surface-variant font-label-md uppercase tracking-wider mb-2">Contributions (This Month)</p>
+        <h3 class="font-numeric-data text-headline-lg text-secondary">
+            ₦{{ "{:,.2f}".format(contrib_stats['contribution_total']) }}
+        </h3>
+        <p class="text-on-surface-variant font-label-md mt-2">{{ contrib_stats['contribution_count'] }} entries</p>
+    </div>
+    <div class="bg-surface-container-lowest p-lg rounded-xl shadow-sm border-l-4 border-on-tertiary-container">
+        <p class="text-on-surface-variant font-label-md uppercase tracking-wider mb-2">Total Records</p>
+        <h3 class="font-numeric-data text-headline-lg text-on-tertiary-container">{{ transactions | length }}</h3>
+        <p class="text-on-surface-variant font-label-md mt-2">All time</p>
+    </div>
+</div>
+
+{# ── Transactions table ── #}
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-surface-container-low border-b border-outline-variant">
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Date</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Type</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Recorded by</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Amount</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Description</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Ref</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-outline-variant">
+
+                {% if transactions %}
+                    {% for txn in transactions %}
+                    <tr class="transaction-row hover:bg-surface-container-low transition-colors">
+
+                        {# Date #}
+                        <td class="px-lg py-md whitespace-nowrap">
+                            <p class="font-body-sm text-on-surface">
+                                {{ txn['created_at'][:10] | replace('-', ' ') }}
+                            </p>
+                            <p class="text-[11px] text-on-surface-variant">
+                                {{ txn['created_at'][11:16] if txn['created_at'] | length > 10 else '' }}
+                            </p>
+                        </td>
+
+                        {# Type badge #}
+                        <td class="px-lg py-md">
+                            <div class="flex items-center gap-sm">
+                                {% if txn['transaction_type'] == 'contribution' %}
+                                    <span class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container shrink-0">
+                                        <span class="material-symbols-outlined text-[18px]">payments</span>
+                                    </span>
+                                    <span class="font-body-sm font-medium text-on-surface">Contribution</span>
+                                {% elif txn['transaction_type'] == 'loan_disbursement' %}
+                                    <span class="w-8 h-8 rounded-full bg-error-container flex items-center justify-center text-on-error-container shrink-0">
+                                        <span class="material-symbols-outlined text-[18px]">outbound</span>
+                                    </span>
+                                    <span class="font-body-sm font-medium text-on-surface">Loan Disb.</span>
+                                {% elif txn['transaction_type'] == 'repayment' %}
+                                    <span class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0">
+                                        <span class="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+                                    </span>
+                                    <span class="font-body-sm font-medium text-on-surface">Repayment</span>
+                                {% elif txn['transaction_type'] == 'refund' %}
+                                    <span class="w-8 h-8 rounded-full bg-tertiary-container flex items-center justify-center text-on-tertiary-container shrink-0">
+                                        <span class="material-symbols-outlined text-[18px]">undo</span>
+                                    </span>
+                                    <span class="font-body-sm font-medium text-on-surface">Refund</span>
+                                {% elif txn['transaction_type'] == 'withdrawal' %}
+                                    <span class="w-8 h-8 rounded-full bg-error-container flex items-center justify-center text-on-error-container shrink-0">
+                                        <span class="material-symbols-outlined text-[18px]">arrow_outward</span>
+                                    </span>
+                                    <span class="font-body-sm font-medium text-on-surface">Withdrawal</span>
+                                {% elif txn['transaction_type'] == 'bank_charge' %}
+                                    <span class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center text-on-surface-variant shrink-0">
+                                        <span class="material-symbols-outlined text-[18px]">currency_exchange</span>
+                                    </span>
+                                    <span class="font-body-sm font-medium text-on-surface">Bank Charge</span>
+                                {% else %}
+                                    <span class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center text-on-surface-variant shrink-0">
+                                        <span class="material-symbols-outlined text-[18px]">receipt_long</span>
+                                    </span>
+                                    <span class="font-body-sm font-medium text-on-surface">
+                                        {{ txn['transaction_type'] | replace('_', ' ') | title }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        {# Member #}
+                        <td class="px-lg py-md">
+                            <div class="flex items-center gap-sm">
+                                <div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-semibold text-xs shrink-0">
+                                    {{ txn['created_by_name'][:2].upper() if txn['created_by_name'] else '??' }}
+                                </div>
+                                <div>
+                                    <p class="font-body-sm text-on-surface leading-tight">
+                                        {{ txn['created_by_name'] or 'System' }}
+                                    </p>
+                                    <p class="text-[11px] text-on-surface-variant">
+                                        @{{ txn['created_by_username'] or '—' }}
+                                    </p>
+                                </div>
+                            </div>
+                        </td>
+
+                        {# Amount — outflows in error colour #}
+                        <td class="px-lg py-md whitespace-nowrap">
+                            {% if txn['transaction_type'] in ['loan_disbursement', 'withdrawal', 'expense'] %}
+                                <span class="font-numeric-data text-error">
+                                    -₦{{ "{:,.2f}".format(txn['amount']) }}
+                                </span>
+                            {% else %}
+                                <span class="font-numeric-data text-on-surface">
+                                    ₦{{ "{:,.2f}".format(txn['amount']) }}
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        {# Description #}
+                        <td class="px-lg py-md">
+                            <span class="font-body-sm text-on-surface-variant">
+                                {{ txn['description'] or '—' }}
+                            </span>
+                        </td>
+
+                        {# Reference #}
+                        <td class="px-lg py-md">
+                            {% if txn['reference_id'] and txn['reference_table'] %}
+                                <span class="font-body-sm text-on-surface-variant">
+                                    {{ txn['reference_table'] }} #{{ "%04d" | format(txn['reference_id']) }}
+                                </span>
+                            {% else %}
+                                <span class="text-on-surface-variant">—</span>
+                            {% endif %}
+                        </td>
+
+                    </tr>
+                    {% endfor %}
+
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="px-lg py-xl text-center text-on-surface-variant font-body-sm">
+                            <span class="material-symbols-outlined text-4xl block mb-sm opacity-40">receipt_long</span>
+                            No transactions recorded yet.
+                        </td>
+                    </tr>
+                {% endif %}
+
+            </tbody>
+        </table>
+    </div>
+
+    {# Pagination footer #}
+    <div class="px-lg py-md border-t border-outline-variant flex items-center justify-between bg-surface-container-lowest">
+        <span class="text-body-sm text-on-surface-variant">
+            Showing {{ transactions | length }} record{{ 's' if transactions | length != 1 else '' }}
+        </span>
+        <div class="flex gap-sm">
+            <button class="p-2 rounded hover:bg-surface-container-low text-on-surface-variant">
+                <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+            <button class="p-2 rounded hover:bg-surface-container-low text-on-surface-variant">
+                <span class="material-symbols-outlined">chevron_right</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const searchInput = document.getElementById('tableSearchInput');
+    const typeFilter  = document.getElementById('typeFilter');
+
+    function filterRows() {
+        const text = searchInput.value.toLowerCase();
+        const type = typeFilter.value.toLowerCase();
+        document.querySelectorAll('.transaction-row').forEach(row => {
+            const matchText = row.innerText.toLowerCase().includes(text);
+            const matchType = type === '' || row.innerText.toLowerCase().includes(type.replace('_', ' '));
+            row.style.display = matchText && matchType ? '' : 'none';
+        });
+    }
+
+    searchInput.addEventListener('input', filterRows);
+    typeFilter.addEventListener('change', filterRows);
+</script>
+{% endblock %}

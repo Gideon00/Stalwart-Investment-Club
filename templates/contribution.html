@@ -1,0 +1,165 @@
+{% extends 'layout.html' %}
+
+{% block title %}Record Contribution | Stalwart Club{% endblock %}
+
+{% block page_heading %}Record Contribution{% endblock %}
+
+{% block content %}
+<div class="mb-lg flex flex-col gap-xs">
+    <p class="text-on-surface-variant font-body-md text-body-md">Log a new financial contribution asset or portfolio equity update for an active club member.</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-lg items-start">
+    <section class="lg:col-span-8 bg-surface-container-lowest rounded-xl p-lg soft-focus-shadow border border-surface-variant/10">
+        <form class="flex flex-col gap-lg" id="contributionForm" method="POST" action="{{ url_for('members.record_contribution') }}">
+            
+            <div class="flex flex-col gap-sm">
+                <label class="font-body-sm text-body-sm font-semibold text-on-surface-variant px-1" for="member">Club Member</label>
+                <div class="relative">
+                    <select required class="w-full h-12 px-md rounded-lg border-none bg-surface-container-low text-on-surface appearance-none cursor-pointer focus:ring-2 focus:ring-primary/20" 
+                            id="member" name="member_id">
+                        <option value="" disabled>-- Select a Member --</option>
+                        {% for m in members_list %}
+                        <option value="{{ m['id'] }}"
+                                data-total="{{ m['total_contributions'] }}">
+                            {{ m['full_name'] }} (@{{ m['username'] }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <span class="material-symbols-outlined absolute right-md top-1/2 -translate-y-1/2 pointer-events-none text-outline">expand_more</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-lg">
+                <div class="flex flex-col gap-sm">
+                    <label class="font-body-sm text-body-sm font-semibold text-on-surface-variant px-1" for="amount">Amount</label>
+                    <div class="relative group">
+                        <span class="absolute left-md top-1/2 -translate-y-1/2 font-numeric-data text-numeric-data text-outline transition-colors group-focus-within:text-primary">₦</span>
+                        <input required class="w-full h-12 pl-10 pr-md rounded-lg border-none bg-surface-container-low text-on-surface font-numeric-data text-numeric-data placeholder:text-outline-variant focus:ring-2 focus:ring-primary/20" 
+                               id="amount" name="amount" placeholder="0.00" step="0.01" type="number" min="0.01"/>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col gap-sm">
+                    <label class="font-body-sm text-body-sm font-semibold text-on-surface-variant px-1" for="method">Payment Method</label>
+                    <div class="relative">
+                        <select class="w-full h-12 px-md rounded-lg border-none bg-surface-container-low text-on-surface appearance-none cursor-pointer focus:ring-2 focus:ring-primary/20" 
+                                id="method" name="method">
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="Cash">Cash</option>
+                            <option value="POS Terminal">POS Terminal</option>
+                        </select>
+                        <span class="material-symbols-outlined absolute right-md top-1/2 -translate-y-1/2 pointer-events-none text-outline">payments</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-sm">
+                <label class="font-body-sm text-body-sm font-semibold text-on-surface-variant px-1" for="reference">Transaction Reference</label>
+                <input required class="w-full h-12 px-md rounded-lg border-none bg-surface-container-low text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary/20" 
+                       id="reference" name="reference" placeholder="e.g. Q3-CONTRIB-2026" type="text"/>
+            </div>
+
+            <div class="flex flex-col gap-sm">
+                <label class="font-body-sm text-body-sm font-semibold text-on-surface-variant px-1" for="notes">Additional Notes</label>
+                <textarea class="w-full p-md rounded-lg border-none bg-surface-container-low text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary/20 resize-none" 
+                          id="notes" name="notes" placeholder="Brief details about the contribution source or specific tracking notes..." rows="4"></textarea>
+            </div>
+
+            <div class="flex flex-col md:flex-row items-center justify-end gap-md pt-md mt-md border-t border-surface-container-highest">
+                <button class="w-full md:w-auto px-lg h-12 rounded-lg font-label-md text-label-md text-primary border border-primary hover:bg-surface-container-low transition-all active:scale-95" 
+                        type="button" onclick="window.history.back()">
+                    Cancel
+                </button>
+                <button class="w-full md:w-auto px-lg h-12 rounded-lg font-label-md text-label-md text-on-primary bg-primary hover:bg-primary-container transition-all active:scale-95 shadow-sm flex items-center justify-center gap-sm" 
+                        type="submit">
+                    <span class="material-symbols-outlined text-[20px]">check_circle</span>
+                    <span>Save Contribution</span>
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <aside class="lg:col-span-4 flex flex-col gap-lg">
+        <div id="sidebarSummaryCard" class="hidden bg-surface-container-lowest rounded-xl p-lg soft-focus-shadow border-l-4 border-secondary border border-surface-variant/10">
+            <h3 class="font-label-md text-label-md text-on-surface-variant mb-md uppercase tracking-wider">Member Reference</h3>
+            <div class="flex items-center gap-md mb-lg">
+                <div class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container shadow-sm">
+                    <span class="material-symbols-outlined">person</span>
+                </div>
+                <div>
+                    <p class="font-headline-md text-[18px] text-on-surface font-semibold" id="sb_name">Select Member</p>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant" id="sb_tier">---</p>
+                </div>
+            </div>
+            <div class="space-y-md">
+                <div class="flex justify-between items-center py-sm border-b border-surface-container-highest">
+                    <span class="text-on-surface-variant font-body-sm text-body-sm">Prior Consolidated Pool</span>
+                    <span class="font-numeric-data text-numeric-data text-secondary font-bold" id="sb_contrib">$0.00</span>
+                </div>
+                <div class="flex justify-between items-center py-sm">
+                    <span class="text-on-surface-variant font-body-sm text-body-sm">Reconciliation Status</span>
+                    <span class="bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight">Verified</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="sidebarPlaceholderCard" class="bg-surface-container-lowest rounded-xl p-lg soft-focus-shadow border border-dashed border-outline-variant text-center text-on-surface-variant py-xl">
+            <span class="material-symbols-outlined text-4xl opacity-25 mb-xs">assignment_ind</span>
+            <p class="text-body-sm">Select a club member to display active reference history ledger parameters.</p>
+        </div>
+
+        <div class="bg-primary text-on-primary rounded-xl p-lg soft-focus-shadow relative overflow-hidden">
+            <div class="relative z-10">
+                <h3 class="font-headline-md text-[20px] mb-sm font-bold">Record Policy</h3>
+                <p class="font-body-sm text-body-sm text-primary-fixed opacity-90">
+                    Contributions must be logged within 24 hours of confirmation. Ensure the transaction reference maps cleanly to your bank terminal statement for automated balancing.
+                </p>
+            </div>
+            <div class="absolute -bottom-8 -right-8 w-32 h-32 bg-primary-container rounded-full opacity-20"></div>
+            <div class="absolute top-4 right-4 w-12 h-12 bg-on-primary-container rounded-full opacity-10"></div>
+        </div>
+    </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const memberSelect = document.getElementById('member');
+    const placeholderCard = document.getElementById('sidebarPlaceholderCard');
+    const summaryCard = document.getElementById('sidebarSummaryCard');
+    
+    // Dynamic interactive context changer targeting sidebar blocks directly
+    memberSelect.addEventListener('change', function() {
+        if (this.value === "") {
+            placeholderCard.classList.remove('hidden');
+            summaryCard.classList.add('hidden');
+            return;
+        }
+
+        placeholderCard.classList.add('hidden');
+        summaryCard.classList.remove('hidden');
+
+        // Extract metadata array fields directly from option properties
+        const selectedOption = this.options[this.selectedIndex];
+        const memberName = selectedOption.text.split(' (@')[0];
+        const rawContributions = parseFloat(selectedOption.getAttribute('data-total')) || 0;
+
+        // Update target layout strings inside component blocks
+        document.getElementById('sb_name').innerText = memberName;
+        document.getElementById('sb_contrib').innerText = '₦' + rawContributions.toLocaleString('en-NG', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        
+    });
+
+    // Form Interceptor enabling native pipeline trigger routines
+    document.getElementById('contributionForm').addEventListener('submit', function(e) {
+        const btn = this.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.classList.add('opacity-80');
+        btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-[20px]">progress_activity</span> Recording Ledger Asset...`;
+    });
+</script>
+{% endblock %}

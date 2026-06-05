@@ -1,0 +1,187 @@
+{% extends 'layout.html' %}
+
+{% block title %}Stalwart Club - Loans Tracker{% endblock %}
+
+{% block page_heading %}Loans{% endblock %}
+
+{% block content %}
+<section class="grid grid-cols-1 md:grid-cols-3 gap-lg mb-xl">
+    <div
+        class="md:col-span-2 p-lg bg-surface-container-lowest rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-surface-variant/20 flex flex-col justify-between relative overflow-hidden">
+        <div class="relative z-10">
+            <p class="font-body-sm text-body-sm text-outline mb-1 uppercase tracking-wider">Total Portfolio Balance</p>
+            <h2 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary mb-md">
+                ₦{{ "{:,.2f}".format(total_balance) }}
+            </h2>
+            <div class="flex gap-4">
+                <div class="flex items-center text-secondary gap-1">
+                    <span class="material-symbols-outlined text-md">trending_up</span>
+                    <span class="font-label-md text-label-md">+12.4%</span>
+                </div>
+                <p class="font-body-sm text-body-sm text-on-surface-variant">vs last quarter</p>
+            </div>
+        </div>
+        <div class="absolute right-0 top-0 h-full w-1/3 opacity-5 pointer-events-none">
+            <svg class="h-full w-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+                <path class="text-primary" d="M0 100 C 20 0, 50 0, 100 100" fill="transparent" stroke="currentColor"
+                    stroke-width="2"></path>
+            </svg>
+        </div>
+    </div>
+
+    <div
+        class="p-lg bg-primary-container text-on-primary rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.1)] flex flex-col justify-center items-center text-center">
+        <span class="material-symbols-outlined text-4xl mb-sm"
+            style="font-variation-settings: 'FILL' 1;">add_circle</span>
+        <h3 class="font-headline-md text-headline-md text-white mb-2">Issue New Loan</h3>
+        <p class="font-body-sm text-body-sm text-on-primary-container mb-md">Empower more members with flexible club
+            credit options.</p>
+        <a href="{{ url_for('loans.add_loan') }}">
+            <button
+                class="bg-white text-primary font-label-md text-label-md px-lg py-sm rounded-lg hover:bg-surface-bright transition-colors active:scale-95">
+                Open Portal
+            </button>
+        </a>
+    </div>
+</section>
+
+<div class="flex items-center justify-between mb-lg">
+    <h2 class="font-headline-md text-headline-md text-on-surface">Active Loan Portfolio</h2>
+    <div class="flex gap-sm">
+        <button
+            class="p-2 bg-surface-container rounded-lg text-on-surface-variant hover:bg-surface-variant transition-colors">
+            <span class="material-symbols-outlined">filter_list</span>
+        </button>
+        <button
+            class="p-2 bg-surface-container rounded-lg text-on-surface-variant hover:bg-surface-variant transition-colors">
+            <span class="material-symbols-outlined">search</span>
+        </button>
+    </div>
+</div>
+
+<div class="space-y-md">
+    {% for loan in loans %}
+    <div
+        class="loan-card-item group bg-surface-container-lowest rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] border-l-4 {{ loan.border_color }} hover:shadow-lg transition-all duration-300 overflow-hidden">
+        <div class="p-lg">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-md mb-lg">
+                <div class="flex items-center gap-md">
+                    <div
+                        class="w-12 h-12 rounded-full flex items-center justify-center {{ loan.status_class.split(' ')[0] if ' ' in loan.status_class else 'bg-primary-fixed' }} {{ loan.status_class.split(' ')[1] if ' ' in loan.status_class else 'text-primary' }}">
+                        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">{{ loan.icon
+                            }}</span>
+                    </div>
+                    <div>
+                        <h3 class="font-headline-md text-body-lg md:text-headline-md text-on-surface font-semibold">
+                            {{ loan.name }}
+                        </h3>
+                        <p class="font-body-sm text-body-sm text-outline">ID: {{ loan.id }}</p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-sm items-center">
+                    <span class="px-3 py-1 text-label-md font-label-md rounded-full border {{ loan.status_class }}">
+                        {{ loan.status }}
+                    </span>
+                    <span
+                        class="font-numeric-data text-numeric-data {% if loan.status.lower() == 'overdue' %}text-error font-bold{% else %}text-on-surface-variant{% endif %}">
+                        {{ loan.date_label }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-lg mb-lg border-y border-surface-variant/30 py-md">
+                <div>
+                    <p class="font-body-sm text-body-sm text-outline mb-1">Loan Amount</p>
+                    <p class="font-numeric-data text-numeric-data text-on-surface">₦{{ "{:,.2f}".format(loan.amount) }}
+                    </p>
+                </div>
+                <div>
+                    <p class="font-body-sm text-body-sm text-outline mb-1">Amount Paid</p>
+                    <p class="font-numeric-data text-numeric-data text-secondary">₦{{ "{:,.2f}".format(loan.paid) }}</p>
+                </div>
+                <div>
+                    <p class="font-body-sm text-body-sm text-outline mb-1">Balance</p>
+                    <p
+                        class="font-numeric-data text-numeric-data {% if loan.balance > 0 and loan.status.lower() == 'overdue' %}text-error font-bold{% else %}text-on-surface{% endif %}">
+                        ₦{{ "{:,.2f}".format(loan.balance) }}
+                    </p>
+                </div>
+                <div>
+                    <p class="font-body-sm text-body-sm text-outline mb-1">Interest Rate</p>
+                    <p class="font-numeric-data text-numeric-data text-on-surface">{{ loan.rate }}</p>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <p class="font-label-md text-label-md text-on-surface-variant">Repayment Progress</p>
+                    <p class="font-numeric-data text-label-md text-primary font-bold">{{ loan.progress }}</p>
+                </div>
+                <div class="w-full h-2 bg-surface-container-high rounded-full overflow-hidden">
+                    <div class="h-full {{ loan.progress_class }} transition-all duration-1000 ease-out"
+                        data-progress="{{ loan.progress }}" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-sm pt-md mt-md border-t border-surface-variant/20">
+                {% if loan.status.lower() != 'completed' %}
+                <a href="{{ url_for('loans.record_repayment', loan_id=loan.raw_id) }}">
+                    <button class="flex items-center gap-xs px-md py-sm bg-primary text-on-primary rounded-lg font-label-md text-label-md hover:opacity-90 transition-all active:scale-95">
+                        <span class="material-symbols-outlined text-[18px]">payments</span>
+                        Record Repayment
+                    </button>
+                </a>
+                {% else %}
+                <span class="flex items-center gap-xs px-md py-sm bg-secondary-container text-on-secondary-container rounded-lg font-label-md text-label-md">
+                    <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                    Fully Repaid
+                </span>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+    {% else %}
+    <div class="p-xl text-center bg-surface-container-lowest rounded-xl border border-dashed border-outline-variant/50">
+        <span class="material-symbols-outlined text-4xl text-outline mb-sm opacity-40">account_balance_wallet</span>
+        <p class="text-body-md text-on-surface-variant font-medium">No records found matching active loan facilities
+            inside the registry portfolio database ledger.</p>
+    </div>
+    {% endfor %}
+</div>
+
+<a href="{{ url_for('loans.add_loan') }}" class="fixed right-6 bottom-24 z-40">
+    <button
+        class="bg-primary text-white p-4 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all active:scale-95 group">
+        <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined">add</span>
+            <span class="hidden group-hover:block transition-all font-label-md text-label-md pr-1">New Loan</span>
+        </div>
+    </button>
+</a>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // High-performance intersection observer tracking meter rendering anchors cleanly
+    const loanObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const progressTrack = entry.target.querySelector('[data-progress]');
+                if (progressTrack) {
+                    const widthAllocation = progressTrack.getAttribute('data-progress');
+                    // Micro-delay prevents style execution collision during frame parsing
+                    requestAnimationFrame(() => {
+                        progressTrack.style.width = widthAllocation;
+                    });
+                }
+                loanObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.15 });
+
+    document.querySelectorAll('.loan-card-item').forEach(card => {
+        loanObserver.observe(card);
+    });
+</script>
+{% endblock %}

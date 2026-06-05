@@ -1,0 +1,245 @@
+{% extends 'layout.html' %}
+
+{% block title %}Executive Dashboard | Stalwart Club{% endblock %}
+{% block page_heading %}Stalwart Club{% endblock %}
+
+{% block header_meta %}
+<span class="text-on-surface-variant font-label-md text-label-md uppercase tracking-wider">{{ today }}</span>
+{% endblock %}
+
+{% block content %}
+
+{# ── Greeting ── #}
+<div class="mb-lg">
+    <h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary">
+        Welcome back, {{ session.get('full_name', session.get('username', 'there')).split()[0] }}.
+    </h2>
+    <p class="text-on-surface-variant font-body-md text-body-md">
+        Consolidated performance overview · {{ member_count }} active member{{ 's' if member_count != 1 else '' }}
+        {% if overdue_count > 0 %}
+        · <span class="text-error font-medium">{{ overdue_count }} overdue loan{{ 's' if overdue_count != 1 else ''
+            }}</span>
+        {% endif %}
+    </p>
+</div>
+
+{# ── KPI cards ── #}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-md mb-xl">
+
+    {# Total capital #}
+    <div
+        class="bg-surface-container-lowest p-lg rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] border-l-4 border-primary transition-all hover:-translate-y-1 hover:shadow-lg">
+        <div class="flex items-center justify-between mb-base">
+            <span class="text-on-surface-variant font-label-md text-label-md">Total Club Capital</span>
+            <span class="material-symbols-outlined text-primary opacity-20">account_balance</span>
+        </div>
+        <div class="font-numeric-data text-headline-md text-primary">
+            ₦{{ "{:,.0f}".format(total_capital) }}
+        </div>
+        <div class="mt-base flex items-center gap-xs">
+            <span class="text-on-surface-variant font-label-md text-label-md">
+                {{ member_count }} contributing member{{ 's' if member_count != 1 else '' }}
+            </span>
+        </div>
+    </div>
+
+    {# Active loans #}
+    <div
+        class="bg-surface-container-lowest p-lg rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] border-l-4 border-secondary transition-all hover:-translate-y-1 hover:shadow-lg">
+        <div class="flex items-center justify-between mb-base">
+            <span class="text-on-surface-variant font-label-md text-label-md">Active Loans</span>
+            <span class="material-symbols-outlined text-secondary opacity-20">payments</span>
+        </div>
+        <div class="font-numeric-data text-headline-md text-on-surface">
+            {{ loan_stats['count'] }} unit{{ 's' if loan_stats['count'] != 1 else '' }}
+        </div>
+        <div class="mt-base flex items-center gap-xs">
+            <span class="text-on-surface-variant font-label-md text-label-md">
+                Avg rate: {{ "%.1f"|format(loan_stats['avg_rate']) }}%
+            </span>
+        </div>
+    </div>
+
+    {# Profit #}
+    <div
+        class="bg-surface-container-lowest p-lg rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] border-l-4 border-tertiary-container transition-all hover:-translate-y-1 hover:shadow-lg">
+        <div class="flex items-center justify-between mb-base">
+            <span class="text-on-surface-variant font-label-md text-label-md">Interest Earned</span>
+            <span class="material-symbols-outlined text-tertiary opacity-20">show_chart</span>
+        </div>
+        <div class="font-numeric-data text-headline-md text-primary">
+            ₦{{ "{:,.0f}".format(profit) }}
+        </div>
+        <div class="mt-base flex items-center gap-xs">
+            <span class="text-secondary font-label-md text-label-md flex items-center gap-xs">
+                <span class="material-symbols-outlined text-[14px]">arrow_upward</span>
+                ₦{{ "{:,.0f}".format(profit_week) }} this week
+            </span>
+        </div>
+    </div>
+
+    {# Available cash #}
+    <div
+        class="bg-surface-container-lowest p-lg rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] border-l-4 border-outline transition-all hover:-translate-y-1 hover:shadow-lg">
+        <div class="flex items-center justify-between mb-base">
+            <span class="text-on-surface-variant font-label-md text-label-md">Available Cash</span>
+            <span class="material-symbols-outlined text-outline opacity-20">wallet</span>
+        </div>
+        <div class="font-numeric-data text-headline-md text-on-surface">
+            ₦{{ "{:,.0f}".format(available_cash if available_cash > 0 else 0) }}
+        </div>
+        <div class="mt-base">
+            <div class="w-full bg-surface-variant h-1 rounded-full overflow-hidden">
+                <div class="bg-primary h-full transition-all duration-700"
+                    style="width: {{ liquidity_pct }}%"></div>
+            </div>
+            <span class="text-outline text-[10px] font-label-md mt-1 block">
+                {{ liquidity_pct }}% liquidity ratio
+            </span>
+        </div>
+    </div>
+
+</div>
+
+{# ── Chart + Recent activity ── #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-lg">
+
+    {# Equity chart — static SVG placeholder; wire up Chart.js when ready #}
+    <div class="lg:col-span-2 bg-surface-container-lowest p-lg rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
+        <div class="flex items-center justify-between mb-lg">
+            <h3 class="font-headline-md text-headline-md text-primary">Equity Growth</h3>
+            <select class="bg-surface-container-low border-none rounded-lg font-label-md text-label-md py-1">
+                <option>Last 6 Months</option>
+                <option>Year to Date</option>
+            </select>
+        </div>
+        <div class="h-64 w-full bg-surface-container-low rounded-lg relative overflow-hidden group">
+            <svg class="absolute bottom-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 1000 100">
+                <path d="M0,80 Q100,70 200,75 T400,50 T600,60 T800,30 T1000,40 L1000,100 L0,100 Z"
+                    fill="rgba(30,58,138,0.05)"></path>
+                <path d="M0,80 Q100,70 200,75 T400,50 T600,60 T800,30 T1000,40" fill="none" stroke="#1e3a8a"
+                    stroke-width="2" class="transition-all duration-1000 group-hover:stroke-primary"></path>
+            </svg>
+            <div
+                class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <span class="bg-primary text-white px-3 py-1 rounded-full text-xs font-bold">
+                    ₦{{ "{:,.0f}".format(total_capital) }} total pool
+                </span>
+            </div>
+        </div>
+    </div>
+
+    {# Recent activity feed #}
+    <div class="bg-surface-container-lowest p-lg rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
+        <div class="flex items-center justify-between mb-lg">
+            <h3 class="font-headline-md text-headline-md text-primary">Recent Activity</h3>
+            <a href="{{ url_for('transactions.list_transactions') }}"
+                class="text-primary font-label-md text-label-md hover:underline">View all</a>
+        </div>
+
+        {% if recent_activity %}
+        <div
+            class="space-y-md relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-surface-variant">
+            {% for txn in recent_activity %}
+            <div class="flex gap-md relative">
+
+                {# Icon dot by transaction type #}
+                {% if txn['transaction_type'] == 'contribution' %}
+                <div
+                    class="w-6 h-6 rounded-full bg-secondary-container flex items-center justify-center z-10 border-4 border-surface-container-lowest shrink-0">
+                    <span class="material-symbols-outlined text-[12px] text-on-secondary-container"
+                        style="font-variation-settings:'FILL' 1">add</span>
+                </div>
+                {% elif txn['transaction_type'] == 'loan_disbursement' %}
+                <div
+                    class="w-6 h-6 rounded-full bg-primary-fixed flex items-center justify-center z-10 border-4 border-surface-container-lowest shrink-0">
+                    <span class="material-symbols-outlined text-[12px] text-on-primary-fixed"
+                        style="font-variation-settings:'FILL' 1">send</span>
+                </div>
+                {% elif txn['transaction_type'] == 'repayment' %}
+                <div
+                    class="w-6 h-6 rounded-full bg-tertiary-fixed flex items-center justify-center z-10 border-4 border-surface-container-lowest shrink-0">
+                    <span class="material-symbols-outlined text-[12px] text-on-tertiary-fixed-variant"
+                        style="font-variation-settings:'FILL' 1">verified</span>
+                </div>
+                {% else %}
+                <div
+                    class="w-6 h-6 rounded-full bg-error-container flex items-center justify-center z-10 border-4 border-surface-container-lowest shrink-0">
+                    <span class="material-symbols-outlined text-[12px] text-on-error-container"
+                        style="font-variation-settings:'FILL' 1">receipt_long</span>
+                </div>
+                {% endif %}
+
+                <div class="flex-1 min-w-0">
+                    <p class="text-body-sm font-body-sm text-on-surface truncate">
+                        <span class="font-semibold">{{ txn['actor_name'] or 'System' }}</span>
+                        — {{ txn['transaction_type'] | replace('_', ' ') }}
+                    </p>
+                    <div class="flex items-center gap-xs text-[10px] text-outline mt-xs font-label-md uppercase">
+                        <span class="material-symbols-outlined text-[12px]">schedule</span>
+                        {{ txn['created_at'][:10] }} · ₦{{ "{:,.0f}".format(txn['amount']) }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% else %}
+        <div class="flex flex-col items-center justify-center h-40 text-on-surface-variant">
+            <span class="material-symbols-outlined text-4xl opacity-30 mb-sm">receipt_long</span>
+            <p class="font-body-sm text-body-sm">No transactions yet.</p>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+{# ── Quick actions ── #}
+<div class="mt-xl grid grid-cols-2 md:grid-cols-4 gap-md">
+    <a href="{{ url_for('loans.add_loan') }}">
+        <button
+            class="w-full flex flex-col items-center justify-center gap-base p-md bg-primary text-white rounded-xl active:scale-95 transition-transform">
+            <span class="material-symbols-outlined">add_circle</span>
+            <span class="font-label-md text-label-md">New Loan</span>
+        </button>
+    </a>
+    <a href="{{ url_for('members.add_member') }}">
+        <button
+            class="w-full flex flex-col items-center justify-center gap-base p-md bg-surface-container-highest text-primary rounded-xl active:scale-95 transition-transform border border-primary-fixed">
+            <span class="material-symbols-outlined">person_add</span>
+            <span class="font-label-md text-label-md">Add Member</span>
+        </button>
+    </a>
+    <a href="{{ url_for('transactions.list_transactions') }}">
+        <button
+            class="w-full flex flex-col items-center justify-center gap-base p-md bg-surface-container-highest text-primary rounded-xl active:scale-95 transition-transform border border-primary-fixed">
+            <span class="material-symbols-outlined">receipt_long</span>
+            <span class="font-label-md text-label-md">Transactions</span>
+        </button>
+    </a>
+    <a href="{{ url_for('members.record_contribution') }}">
+        <button
+            class="w-full flex flex-col items-center justify-center gap-base p-md bg-surface-container-highest text-primary rounded-xl active:scale-95 transition-transform border border-primary-fixed">
+            <span class="material-symbols-outlined">savings</span>
+            <span class="font-label-md text-label-md">Record Contribution</span>
+        </button>
+    </a>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.font-numeric-data').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(8px)';
+            setTimeout(() => {
+                el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                el.style.opacity = '1';
+                el.style.transform = 'translateY(0)';
+            }, 100);
+        });
+    });
+</script>
+{% endblock %}

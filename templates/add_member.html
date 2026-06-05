@@ -1,0 +1,156 @@
+{% extends 'layout.html' %}
+
+{% block title %}Add New Member | Stalwart Club{% endblock %}
+
+{% block page_heading %}Add New Member{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto py-sm">
+    <div class="mb-lg rounded-xl overflow-hidden aspect-[21/9] relative shadow-sm">
+        <img alt="Financial Partnership Illustration" class="w-full h-full object-cover"
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAyMCpKnS7RlzA4ADD9IcVBtPs6SJCWo_ifvwn0ze-2EkTjK506I9yGkTP-6XhdWmusVpWZMUyDe-i-4Q721yavGwLKQ-t51-1mas1JK99agzHNZjOGPFLWJqvJg484YoPlENF0LczVWsxmkUGzWX68cIu1m3IRiVuR2t3WiDY_WZ8ViCy5jMQvuGl575D1MccoIyOoF9a3fh3JN6U9EqvLG4KE-g_pWZm5VubxMPhnyH2ijQE6Fdg28YIxHUfx-pGrAZvFpTVlxEnt" />
+        <div class="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent"></div>
+    </div>
+
+    <section class="bg-surface-container-lowest rounded-xl p-md md:p-lg shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
+        <form class="space-y-md" id="newMemberForm" method="POST" action="{{ url_for('members.add_member') }}">
+
+            <div class="space-y-xs">
+                <label class="block font-label-md text-label-md text-on-surface-variant transition-colors duration-150"
+                    for="fullName">
+                    Full Name
+                </label>
+                <input required
+                    class="w-full h-12 px-md bg-surface-container-low border-none rounded-lg focus:ring-2 focus:ring-primary focus:bg-white transition-all text-body-md placeholder:text-outline-variant outline-none"
+                    id="fullName" name="fullName" placeholder="e.g. Alexander Sterling" type="text" />
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+                <div class="space-y-xs">
+                    <label
+                        class="block font-label-md text-label-md text-on-surface-variant transition-colors duration-150"
+                        for="username">
+                        Username
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-md top-1/2 -translate-y-1/2 font-body-md text-outline"></span>
+                        <input required
+                            class="w-full h-12 pl-8 pr-md bg-surface-container-low border-none rounded-lg focus:ring-2 focus:ring-primary focus:bg-white transition-all text-body-md placeholder:text-outline-variant outline-none"
+                            id="username" name="username" placeholder="asterling" type="text" />
+                    </div>
+                </div>
+
+                <div class="space-y-xs">
+                    <label
+                        class="block font-label-md text-label-md text-on-surface-variant transition-colors duration-150"
+                        for="phone">
+                        Phone Number
+                    </label>
+                    <input required
+                        class="w-full h-12 px-md bg-surface-container-low border-none rounded-lg focus:ring-2 focus:ring-primary focus:bg-white transition-all text-body-md placeholder:text-outline-variant outline-none"
+                        id="phone" name="phone" placeholder="e.g. +234 801 234 5678" type="tel" />
+                </div>
+            </div>
+
+            <div class="space-y-xs">
+                <label class="block font-label-md text-label-md text-on-surface-variant transition-colors duration-150"
+                    for="email">
+                    Email Address
+                </label>
+                <input required
+                    class="w-full h-12 px-md bg-surface-container-low border-none rounded-lg focus:ring-2 focus:ring-primary focus:bg-white transition-all text-body-md placeholder:text-outline-variant outline-none"
+                    id="email" name="email" placeholder="alexander@stalwart.club" type="email" />
+            </div>
+
+            <div class="space-y-xs">
+                <label class="block font-label-md text-label-md text-on-surface-variant transition-colors duration-150"
+                    for="tier">
+                    Home Address
+                </label>
+                <div class="relative">
+                    <input required
+                        class="w-full h-12 px-md bg-surface-container-low border-none rounded-lg focus:ring-2 focus:ring-primary focus:bg-white transition-all text-body-md placeholder:text-outline-variant outline-none"
+                        id="address" name="address" placeholder="e.g. 123 Main Street" type="text" />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+                <div class="space-y-xs">
+                    <label
+                        class="block font-label-md text-label-md text-on-surface-variant transition-colors duration-150"
+                        for="password">
+                        Password
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-md top-1/2 -translate-y-1/2 font-body-md text-outline"></span>
+                        <input required
+                            class="w-full h-12 pl-8 pr-md bg-surface-container-low border-none rounded-lg focus:ring-2 focus:ring-primary focus:bg-white transition-all text-body-md placeholder:text-outline-variant outline-none"
+                            id="password" name="password" placeholder="Password" type="password" />
+                    </div>
+                </div>
+
+                <div class="space-y-xs">
+                    <label
+                        class="block font-label-md text-label-md text-on-surface-variant transition-colors duration-150"
+                        for="Cpassword">
+                        Confirm Password
+                    </label>
+                    <input required
+                        class="w-full h-12 px-md bg-surface-container-low border-none rounded-lg focus:ring-2 focus:ring-primary focus:bg-white transition-all text-body-md placeholder:text-outline-variant outline-none"
+                        id="Cpassword" name="Cpassword" placeholder="Confirm Password" type="password" />
+                </div>
+            </div>
+
+            <div class="pt-md flex flex-col gap-sm">
+                <button
+                    class="w-full h-12 bg-primary text-white rounded-lg font-label-md text-label-md hover:bg-primary-container transition-all active:scale-95 duration-150 flex items-center justify-center gap-sm"
+                    type="submit">
+                    <span class="material-symbols-outlined text-[20px]">person_add</span>
+                    Save Member
+                </button>
+                <button
+                    class="w-full h-12 bg-transparent text-primary rounded-lg font-label-md text-label-md hover:bg-surface-container-low transition-all active:scale-95 duration-150"
+                    type="button" onclick="window.history.back()">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <div class="mt-lg p-md bg-surface-container-high rounded-xl flex gap-md items-start">
+        <span class="material-symbols-outlined text-primary">info</span>
+        <p class="text-body-sm text-on-surface-variant">
+            Adding a new member will trigger a digital onboarding invitation to the specified email address. Please
+            ensure all KYC requirements are noted.
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Focus micro-interactions to color label fields cleanly
+    document.querySelectorAll('input, select').forEach(element => {
+        const rowContainer = element.closest('.space-y-xs');
+        if (!rowContainer) return;
+        
+        const label = rowContainer.querySelector('label');
+        if (!label) return;
+
+        element.addEventListener('focus', () => label.classList.add('text-primary'));
+        element.addEventListener('blur', () => label.classList.remove('text-primary'));
+    });
+
+    // Form Interceptor for Visual Feedback
+    document.getElementById('newMemberForm').addEventListener('submit', (e) => {
+        // e.preventDefault(); <-- REMOVED! This allows data to flow to Python
+        
+        const btn = e.target.querySelector('button[type="submit"]');
+        
+        // Change button state to "Processing" right before the page refreshes/submits
+        btn.innerHTML = '<span class="material-symbols-outlined animate-spin">progress_activity</span> Processing...';
+        btn.disabled = true;
+        btn.classList.add('opacity-80');
+    });
+</script>
+{% endblock %}

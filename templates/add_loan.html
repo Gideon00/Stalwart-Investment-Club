@@ -1,0 +1,243 @@
+{% extends 'layout.html' %}
+
+{% block title %}New Loan Application | Stalwart Club{% endblock %}
+
+{% block page_heading %}New Loan Application{% endblock %}
+
+{% block content %}
+<div class="mb-lg">
+    <p class="font-body-md text-body-md text-on-surface-variant">Complete the execution ledger options below to disburse a new credit facility for a new or existing borrower.</p>
+</div>
+
+<form class="grid grid-cols-1 lg:grid-cols-12 gap-lg" id="loanForm" method="POST" action="{{ url_for('loans.add_loan') }}">
+    <div class="lg:col-span-8 space-y-lg">
+        
+        <section class="bg-surface-container-lowest rounded-xl p-lg shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-surface-container-highest">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-md mb-lg border-b border-surface-container-high pb-md">
+                <div class="flex items-center gap-sm">
+                    <span class="material-symbols-outlined text-primary">person</span>
+                    <h2 class="font-headline-md text-headline-md font-semibold text-on-surface">Borrower Profiling</h2>
+                </div>
+                
+                <div class="flex items-center bg-surface-container-low px-md py-2 rounded-xl border border-outline-variant/30 select-none cursor-pointer">
+                    <input class="w-4 h-4 rounded text-primary focus:ring-primary border-outline-variant cursor-pointer" 
+                           id="is_existing" name="is_existing" type="checkbox" value="true"/>
+                    <label class="ml-sm font-label-md text-label-md text-primary font-bold cursor-pointer" for="is_existing">
+                        Existing Club Borrower
+                    </label>
+                </div>
+            </div>
+            
+            <div class="hidden space-y-md mb-md" id="existing_borrower_panel">
+                <div class="flex flex-col gap-xs">
+                    <label class="font-label-md text-label-md text-on-surface-variant" for="borrower_id">Select Existing Borrower Record</label>
+                    <div class="relative">
+                        <select class="w-full h-12 px-md rounded-lg border-none bg-surface-container-low text-on-surface appearance-none cursor-pointer focus:ring-2 focus:ring-primary/20" 
+                                id="borrower_id" name="borrower_id">
+                            <option value="" disabled selected>-- Select verified historical record --</option>
+                            {% for b in existing_borrowers %}
+                                <option value="{{ b.id }}" data-phone="{{ b.phone }}" data-address="{{ b.address }}" data-occupation="{{ b.occupation }}">
+                                    {{ b.full_name }} (ID: #{{"%04d"|format(b.id)}})
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <span class="material-symbols-outlined absolute right-md top-1/2 -translate-y-1/2 pointer-events-none text-outline">expand_more</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-md" id="new_borrower_panel">
+                <div class="flex flex-col gap-xs md:col-span-2">
+                    <label class="font-label-md text-label-md text-on-surface-variant" for="full_name">Full Name</label>
+                    <input class="bg-surface-container-low border-none rounded-lg h-12 px-md focus:ring-2 focus:ring-primary font-body-md text-body-md text-on-surface" 
+                           id="full_name" name="full_name" placeholder="e.g. Alistair Vanguard" type="text"/>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-md mt-md">
+                <div class="flex flex-col gap-xs">
+                    <label class="font-label-md text-label-md text-on-surface-variant" for="phone">Phone Number</label>
+                    <input class="bg-surface-container-low border-none rounded-lg h-12 px-md focus:ring-2 focus:ring-primary font-body-md text-body-md text-on-surface" 
+                           id="phone" name="phone" placeholder="e.g. +234 803 123 4567" type="tel"/>
+                </div>
+
+                <div class="flex flex-col gap-xs">
+                    <label class="font-label-md text-label-md text-on-surface-variant" for="occupation">Occupation</label>
+                    <input class="bg-surface-container-low border-none rounded-lg h-12 px-md focus:ring-2 focus:ring-primary font-body-md text-body-md text-on-surface" 
+                           id="occupation" name="occupation" placeholder="e.g. Software Consultant" type="text"/>
+                </div>
+
+                <div class="flex flex-col gap-xs md:col-span-2">
+                    <label class="font-label-md text-label-md text-on-surface-variant" for="address">Residential Address</label>
+                    <input class="bg-surface-container-low border-none rounded-lg h-12 px-md focus:ring-2 focus:ring-primary font-body-md text-body-md text-on-surface" 
+                           id="address" name="address" placeholder="e.g. Suite 400, Financial Avenue" type="text"/>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-surface-container-lowest rounded-xl p-lg shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-surface-container-highest">
+            <div class="flex items-center gap-sm mb-lg">
+                <span class="material-symbols-outlined text-primary">verified_user</span>
+                <h2 class="font-headline-md text-headline-md font-semibold text-on-surface">Guarantor Verification Terms</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+                <div class="flex flex-col gap-xs">
+                    <label class="font-label-md text-label-md text-on-surface-variant" for="guarantor_name">Guarantor Full Name</label>
+                    <input required class="bg-surface-container-low border-none rounded-lg h-12 px-md focus:ring-2 focus:ring-primary font-body-md text-body-md text-on-surface" 
+                           id="guarantor_name" name="guarantor_name" placeholder="e.g. Jane Smith" type="text"/>
+                </div>
+                <div class="flex flex-col gap-xs">
+                    <label class="font-label-md text-label-md text-on-surface-variant" for="guarantor_phone">Guarantor Phone Number</label>
+                    <input required class="bg-surface-container-low border-none rounded-lg h-12 px-md focus:ring-2 focus:ring-primary font-body-md text-body-md text-on-surface" 
+                           id="guarantor_phone" name="guarantor_phone" placeholder="e.g. +234 802 987 6543" type="tel"/>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="lg:col-span-4 space-y-lg">
+        <section class="bg-surface-container-lowest rounded-xl p-lg shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-primary-container/10">
+            <div class="flex items-center gap-sm mb-lg">
+                <span class="material-symbols-outlined text-primary">account_balance_wallet</span>
+                <h2 class="font-headline-md text-headline-md font-semibold text-on-surface">Loan Terms</h2>
+            </div>
+            <div class="space-y-md">
+                <div class="flex flex-col gap-xs">
+                    <label class="font-label-md text-label-md text-on-surface-variant" for="principal">Principal Amount (₦)</label>
+                    <input required class="bg-surface-container-low border-none rounded-lg h-12 px-md focus:ring-2 focus:ring-primary font-numeric-data text-numeric-data text-on-surface" 
+                           id="principal" name="principal" placeholder="₦50,000" type="number" min="1"/>
+                </div>
+                <div class="flex flex-col gap-xs">
+                    <label class="font-label-md text-label-md text-on-surface-variant" for="interest">Interest Rate (% APR)</label>
+                    <input required class="bg-surface-container-low border-none rounded-lg h-12 px-md focus:ring-2 focus:ring-primary font-numeric-data text-numeric-data text-on-surface" 
+                           id="interest" name="interest_rate" placeholder="15.0" step="0.1" type="number" min="0"/>
+                </div>
+            </div>
+
+            <div class="mt-lg p-md bg-primary-container/5 rounded-lg border border-primary-container/20 space-y-sm">
+                
+                <div class="flex justify-between items-center">
+                    <span class="font-body-sm text-body-sm text-on-surface-variant">Total Interest Payable</span>
+                    <span class="font-numeric-data text-numeric-data text-secondary font-bold" id="totalInterest">₦0.00</span>
+                </div>
+            </div>
+
+            <button class="w-full mt-lg h-12 bg-primary text-on-primary font-bold rounded-lg shadow-sm hover:bg-primary-container active:scale-95 transition-all duration-150" 
+                    type="submit">
+                Disburse Active Loan
+            </button>
+            <button class="w-full mt-sm h-12 text-primary font-semibold hover:bg-surface-container-low rounded-lg transition-colors" 
+                    type="button" onclick="window.history.back()">
+                Cancel
+            </button>
+        </section>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const toggleCheckbox = document.getElementById('is_existing');
+    const existingPanel = document.getElementById('existing_borrower_panel');
+    const newPanel = document.getElementById('new_borrower_panel');
+    
+    // Core inputs fields to handle read-only vs writable states
+    const nameInput = document.getElementById('full_name');
+    const phoneInput = document.getElementById('phone');
+    const occupationInput = document.getElementById('occupation');
+    const addressInput = document.getElementById('address');
+    const borrowerSelect = document.getElementById('borrower_id');
+
+    // Toggles interface parameters cleanly based on state changes
+    toggleCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            existingPanel.classList.remove('hidden');
+            newPanel.classList.add('hidden');
+            
+            // Requirements shift dynamically to prevent browser blockages
+            nameInput.required = false;
+            borrowerSelect.required = true;
+            
+            // Set fields to read-only style locks to match system settings
+            setFieldsReadOnly(true);
+            triggerSelectLookup();
+        } else {
+            existingPanel.classList.add('hidden');
+            newPanel.classList.remove('hidden');
+            
+            nameInput.required = true;
+            borrowerSelect.required = false;
+            
+            setFieldsReadOnly(false);
+            clearBiodataForm();
+        }
+    });
+
+    borrowerSelect.addEventListener('change', triggerSelectLookup);
+
+    function triggerSelectLookup() {
+        const option = borrowerSelect.options[borrowerSelect.selectedIndex];
+        if (!option || option.value === "") return;
+
+        phoneInput.value = option.getAttribute('data-phone') || '';
+        occupationInput.value = option.getAttribute('data-occupation') || '';
+        addressInput.value = option.getAttribute('data-address') || '';
+    }
+
+    function setFieldsReadOnly(isTrue) {
+        phoneInput.readOnly = isTrue;
+        occupationInput.readOnly = isTrue;
+        addressInput.readOnly = isTrue;
+
+        // Apply background tint to visually convey the field lock state
+        const fields = [phoneInput, occupationInput, addressInput];
+        fields.forEach(f => {
+            if (isTrue) f.classList.add('opacity-70', 'cursor-not-allowed');
+            else f.classList.remove('opacity-70', 'cursor-not-allowed');
+        });
+    }
+
+    function clearBiodataForm() {
+        borrowerSelect.selectedIndex = 0;
+        nameInput.value = "";
+        phoneInput.value = "";
+        occupationInput.value = "";
+        addressInput.value = "";
+    }
+
+    // Live calculation interest tracking loops
+    const principalInput = document.getElementById('principal');
+    const interestInput = document.getElementById('interest');
+    // const estPayment = document.getElementById('estPayment');
+    const totalInterest = document.getElementById('totalInterest');
+
+    function executeLiveCalculations() {
+        const p = parseFloat(principalInput.value) || 0;
+        const r = (parseFloat(interestInput.value) || 0) / 100;
+        
+        const totalInt = p * r;
+
+        totalInterest.textContent = `₦${totalInt.toLocaleString('en-NG', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    }
+
+    
+    principalInput.addEventListener('input', executeLiveCalculations);
+    interestInput.addEventListener('input', executeLiveCalculations);
+
+    // Initialise on load
+    executeLiveCalculations();
+
+
+    // function executeLiveCalculations() {
+    //     const p = parseFloat(principalInput.value) || 0;
+    //     const r = (parseFloat(interestInput.value) || 0) / 100;
+        
+    //     const totalInt = p * r;
+    //     const monthlyEst = (p + totalInt) / 12;
+
+    //     estPayment.textContent = `₦${monthlyEst.toLocaleString('en-NG', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    //     totalInterest.textContent = `₦${totalInt.toLocaleString('en-NG', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    // }
+ 
+</script>
+{% endblock %}
