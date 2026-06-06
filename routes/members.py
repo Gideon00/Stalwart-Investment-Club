@@ -105,7 +105,7 @@ def add_member():
             log_audit(
                 db=db,
                 action='create',
-                target_table='members',
+                table_name='members',
                 record_id=new_member_id,
                 description=f"New member account created for {full_name}",
                 member_id=session.get('user_id')
@@ -176,7 +176,7 @@ def record_contribution():
             log_audit(
                 db=db,
                 action='create',
-                target_table='contributions',
+                table_name='contributions',
                 record_id=new_contribution_id,
                 description=f"Contribution of ₦{amount:,.2f} recorded for {member_name} (ID: {member_id})",
                 member_id=session.get('user_id')
