@@ -48,5 +48,5 @@ def log_audit(db, action, table_name, record_id, description, member_id=None):
     """
     db.execute("""
         INSERT INTO audit_logs (member_id, action, table_name, record_id, description)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s)
     """, (member_id, action, table_name, record_id, description))
