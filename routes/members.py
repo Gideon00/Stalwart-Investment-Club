@@ -8,53 +8,55 @@ from helpers import admin_required, get_db, log_audit, login_required
 
 members_bp = Blueprint('members', __name__)
 
-
 @members_bp.route('/members')
 @login_required
 def list_members():
     try:
-        with get_db() as conn:
-            db = conn.cursor()
+        # Get the CS50 SQL execution object
+        db = get_db()
 
-            db.execute("SELECT * FROM members ORDER BY id DESC")
-            members_from_db = db.fetchall()
+        # Fetch all members
+        # CS50 automatically returns a list of mutable dictionaries
+        members_from_db = db.execute("SELECT * FROM members ORDER BY id DESC")
 
-            # Convert date format for display
-            members_list = []
-            for m in members_from_db:
-                m = dict(m)  # convert Row object to regular dict so it's mutable
-                if m['date_joined']:
-                    m['date_joined'] = datetime.strptime(m['date_joined'], '%Y-%m-%d').strftime('%d-%m-%Y')
-                members_list.append(m)
+        # Convert date format for display
+        for m in members_from_db:
+            # No need for m = dict(m); CS50 dicts are already standard and mutable!
+            if m['date_joined']:
+                m['date_joined'] = datetime.strptime(m['date_joined'], '%Y-%m-%d').strftime('%d-%m-%Y')
 
-            db.execute("SELECT COUNT(*) as count FROM members WHERE status = 'active'")
-            total_members = db.fetchone()['count']
+        # Total members count
+        res_total = db.execute("SELECT COUNT(*) as count FROM members WHERE status = 'active'")
+        total_members = res_total[0]['count']
 
-            db.execute("""
-                SELECT COALESCE(AVG(total), 0) as avg
-                FROM (
-                    SELECT SUM(amount) as total
-                    FROM contributions
-                    GROUP BY member_id
-                )
-            """)
-            avg_contribution = db.fetchone()['avg']
+        # Average contribution per member
+        res_avg = db.execute("""
+            SELECT COALESCE(AVG(total), 0) as avg
+            FROM (
+                SELECT SUM(amount) as total
+                FROM contributions
+                GROUP BY member_id
+            )
+        """)
+        avg_contribution = res_avg[0]['avg']
 
-            db.execute("""
-                SELECT COUNT(*) as count FROM members WHERE status = 'active'
-            """)
-            active_count = db.fetchone()['count']
+        # Active members count (for percentage calculation)
+        res_active = db.execute("""
+            SELECT COUNT(*) as count FROM members WHERE status = 'active'
+        """)
+        active_count = res_active[0]['count']
 
-            active_share = round((active_count / total_members * 100), 1) if total_members > 0 else 0
+        active_share = round((active_count / total_members * 100), 1) if total_members > 0 else 0
 
         return render_template('members.html',
             active_page='members',
-            members=members_list,
+            members=members_from_db,  # Pass the updated list directly
             total_members=total_members,
             avg_contribution=avg_contribution,
             active_share=active_share
         )
-    except sqlite3.Error as e:
+        
+    except Exception as e:
         flash(f"Failed to load members: {str(e)}", "error")
         return render_template('members.html',
             active_page='members',
@@ -62,8 +64,7 @@ def list_members():
             total_members=0,
             avg_contribution=0,
             active_share=0
-        )
-    
+        )   
     
 
 @members_bp.route('/members/add', methods=['GET', 'POST'])
@@ -90,48 +91,51 @@ def add_member():
 
         # 4. Insert
         try:
-            with get_db() as conn:
-                db = conn.cursor()
-                db.execute("""
-                    INSERT INTO members (
-                        full_name, password_hash, username, phone, email, address, profile_photo
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (full_name, password_hash, username, phone, email, address, profile))
+            db = get_db()  # Get the CS50 SQL execution object
+            
+            # CS50 .execute() returns the auto-incremented ID on INSERT statements directly
+            new_member_id = db.execute("""
+                INSERT INTO members (
+                    full_name, password_hash, username, phone, email, address, profile_photo
+                ) VALUES (:full_name, :password_hash, :username, :phone, :email, :address, :profile)
+            """, 
+                full_name=full_name, password_hash=password_hash, username=username, 
+                phone=phone, email=email, address=address, profile=profile
+            )
+            
+            # Trigger the audit log tracking payload (passing CS50 db reference directly)
+            log_audit(
+                db=db, 
+                action='create', 
+                table_name='members', 
+                record_id=new_member_id,
+                description=f"New member account created for {full_name}",
+                member_id=session.get('user_id')  # Tracks WHO did it
+            )
 
-                # Capture the auto-incremented ID generated by SQLite for this new row
-                new_member_id = db.lastrowid
-                
-                # Trigger the audit log tracking payload
-                log_audit(
-                    db=db, 
-                    action='create', 
-                    table_name='members', 
-                    record_id=new_member_id,
-                    description=f"New member account created for {full_name}",
-                    member_id=session.get('user_id')  # Tracks WHOM did it (logged-in admin/user)
-                )
-
-                conn.commit()
 
             flash(f"Account created for {full_name}.", "success")
             return redirect(url_for('members.list_members'))
 
-        except sqlite3.IntegrityError:
-            flash("Username or email already exists. Please choose another.", "error")
+        except Exception as e:
+            # CS50 wraps standard errors. We parse the error string to catch unique/integrity constraint drops.
+            error_msg = str(e).lower()
+            if "unique" in error_msg or "duplicate key" in error_msg:
+                flash("Username or email already exists. Please choose another.", "error")
+            else:
+                flash(f"Database error: {str(e)}", "error")
+                
             return render_template('add_member.html', active_page='members')
 
-        except sqlite3.Error as e:
-            flash(f"Database error: {str(e)}", "error")
-            return render_template('add_member.html', active_page='members')
-
-    return render_template('add_member.html', active_page='members')
-
+    return redirect('add_member.html', active_page='members')
 
 
 # Handle Recording of New Contributions Workflow Pipeline
 @members_bp.route('/contributions/record', methods=['GET', 'POST'])
 @login_required
 def record_contribution():
+    db = get_db()  # Get the CS50 SQL execution object
+
     if request.method == 'POST':
         member_id = request.form.get('member_id')
         amount = float(request.form.get('amount') or 0)
@@ -144,79 +148,74 @@ def record_contribution():
             return redirect(url_for('members.record_contribution'))
 
         try:
-            with get_db() as conn:
-                db = conn.cursor()
+            # 1. Get member name for the transaction description
+            res_member = db.execute("SELECT full_name FROM members WHERE id = :id", id=member_id)
+            
+            if not res_member:
+                flash("Member not found.", "error")
+                return redirect(url_for('members.record_contribution'))
+            
+            # Since CS50 always returns a dict, we extract directly by key name
+            member_name = res_member[0]['full_name']
 
-                # 1. Get member name for the transaction description
-                db.execute("SELECT full_name FROM members WHERE id = ?", (member_id,))
-                member = db.fetchone()
-                if not member:
-                    flash("Member not found.", "error")
-                    return redirect(url_for('members.record_contribution'))
-                
-                # Extract clean name from row result
-                member_name = member[0] if isinstance(member, tuple) else member['full_name']
+            # 2. Insert into contributions table
+            # CS50 .execute() returns the auto-incremented ID on INSERT statements directly
+            new_contribution_id = db.execute("""
+                INSERT INTO contributions (
+                    member_id, amount, payment_method, reference, notes, created_by
+                ) VALUES (:member_id, :amount, :method, :reference, :notes, :creator)
+            """, 
+                member_id=member_id, amount=amount, method=method, 
+                reference=reference, notes=notes, creator=session['user_id']
+            )
 
-                # 2. Insert into contributions table
-                db.execute("""
-                    INSERT INTO contributions (
-                        member_id, amount, payment_method, reference, notes, created_by
-                    ) VALUES (?, ?, ?, ?, ?, ?)
-                """, (member_id, amount, method, reference, notes, session['user_id']))
+            # 3. Log in transactions table
+            db.execute("""
+                INSERT INTO transactions (
+                    transaction_type, amount, description,
+                    reference_id, reference_table, created_by
+                ) VALUES ('contribution', :amount, :desc, :ref_id, 'contributions', :creator)
+            """, 
+                amount=amount,
+                desc=f"Contribution of ₦{amount:,.2f} via {method} by {member_name} — {reference}",
+                ref_id=new_contribution_id,
+                creator=session['user_id']
+            )
 
-                # Capture the newly generated Contribution ID for Python to use in audit log
-                new_contribution_id = db.lastrowid
-
-                # 3. Log in transactions table — using python variable for consistency
-                db.execute("""
-                    INSERT INTO transactions (
-                        transaction_type, amount, description,
-                        reference_id, reference_table, created_by
-                    ) VALUES ('contribution', ?, ?, ?, 'contributions', ?)
-                """, (
-                    amount,
-                    f"Contribution of ₦{amount:,.2f} via {method} by {member_name} — {reference}",
-                    new_contribution_id,
-                    session['user_id']
-                ))
-
-                # 4. Trigger the audit log wrapper
-                log_audit(
-                    db=db, 
-                    action='create', 
-                    table_name='contributions', 
-                    record_id=new_contribution_id,
-                    description=f"Contribution of ₦{amount:,.2f} recorded for member: {member_name} (ID: {member_id})",
-                    member_id=session.get('user_id')
-                )
-                                    
-                conn.commit()
+            # 4. Trigger the audit log wrapper
+            log_audit(
+                db=db, 
+                action='create', 
+                table_name='contributions', 
+                record_id=new_contribution_id,
+                description=f"Contribution of ₦{amount:,.2f} recorded for member: {member_name} (ID: {member_id})",
+                member_id=session.get('user_id')
+            )
+            
+            # No conn.commit() needed; CS50 handles it automatically!
 
             flash("Contribution recorded successfully.", "success")
             return redirect(url_for('transactions.list_transactions'))
 
-        except sqlite3.Error as e:
+        except Exception as e:
             flash(f"Database error: {str(e)}", "error")
             return redirect(url_for('members.record_contribution'))
 
-    # GET — only fetch columns that actually exist
+    # GET REQUEST
     try:
-        with get_db() as conn:
-            db = conn.cursor()
-            db.execute("""
-                SELECT
-                    m.id,
-                    m.full_name,
-                    m.username,
-                    COALESCE(SUM(c.amount), 0) as total_contributions
-                FROM members m
-                LEFT JOIN contributions c ON c.member_id = m.id
-                WHERE m.status = 'active'
-                GROUP BY m.id
-                ORDER BY m.full_name ASC
-            """)
-            active_members = db.fetchall()
-    except sqlite3.Error:
+        active_members = db.execute("""
+            SELECT
+                m.id,
+                m.full_name,
+                m.username,
+                COALESCE(SUM(c.amount), 0) as total_contributions
+            FROM members m
+            LEFT JOIN contributions c ON c.member_id = m.id
+            WHERE m.status = 'active'
+            GROUP BY m.id
+            ORDER BY m.full_name ASC
+        """)
+    except Exception:
         active_members = []
 
     return render_template('contribution.html', active_page='members', members_list=active_members)
