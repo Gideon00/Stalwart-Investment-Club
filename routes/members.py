@@ -85,6 +85,15 @@ def add_member():
         if password != cpassword:
             flash("Password and confirm password do not match.", "error")
             return render_template('add_member.html', active_page='members')
+            
+        # Check if username or email already exists
+        existing = db.execute(
+            "SELECT id FROM members WHERE username = %s OR email = %s",
+            username, email
+        )
+        if existing:
+            flash("Username or email already taken. Please choose another.", "error")
+            return render_template('add_member.html', active_page='members')
 
         # 3. Hash — never store raw text
         password_hash = generate_password_hash(password)
