@@ -1,4 +1,6 @@
+import os
 from functools import wraps
+from dotenv import load_dotenv
 from helpers import login_required
 from flask import Flask, render_template, redirect, session, url_for
 
@@ -7,7 +9,9 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.jinja_env.auto_reload = True
 
 # Secret key used for secure cookie-based session management
-app.config['SECRET_KEY'] = 'stalwart_club_secure_hash_token_2026'
+load_dotenv()
+
+app.secret_key = os.getenv('SECRET_KEY')
 
 # Custom global context processor to track active menu endpoints across inclusions
 @app.context_processor
