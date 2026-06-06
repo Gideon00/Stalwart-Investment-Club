@@ -80,9 +80,11 @@ def add_member():
 
         db = get_db()
 
-        # 3. Check uniqueness
+        # 3. Check uniqueness (Case-Insensitive)
         existing = db.execute(
-            "SELECT id FROM members WHERE username = %s OR email = %s",
+            """
+            SELECT id FROM members WHERE LOWER(username) = LOWER(%s) OR LOWER(email) = LOWER(%s)
+            """,
             username, email
         )
         if existing:
