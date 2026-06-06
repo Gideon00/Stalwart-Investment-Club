@@ -87,6 +87,7 @@ def add_member():
             return render_template('add_member.html', active_page='members')
             
         # Check if username or email already exists
+        db = get_db()
         existing = db.execute(
             "SELECT id FROM members WHERE username = %s OR email = %s",
             username, email
