@@ -1,7 +1,7 @@
 import os
 from datetime import date, datetime, timedelta
 from flask import Blueprint, render_template, request, redirect, session, url_for, flash
-from helpers import admin_required, get_db, log_audit, login_required
+from helpers import admin_required, get_db, login_required
 
 loans_bp = Blueprint('loans', __name__)
 
@@ -323,15 +323,6 @@ def record_repayment(loan_id):
                  + (f" Note: {notes}" if notes else "")),
                 loan_id,
                 session.get('user_id')
-            )
-
-            log_audit(
-                db=db,
-                action='update',
-                table_name='loans',
-                record_id=loan_id,
-                description=f"Repayment of ₦{actual_payment:,.2f}. Status → '{new_status}'. Balance: ₦{new_balance:,.2f}.",
-                member_id=session.get('user_id')
             )
 
             status_msg = " Loan marked as completed!" if new_status == 'completed' else ""
