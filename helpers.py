@@ -1,17 +1,18 @@
 import os
-import sqlite3
+from dotenv import load_dotenv
+from cs50 import SQL
 from functools import wraps
 from flask import session, redirect, url_for, flash
 
-DATABASE_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'club.db')
+
+load_dotenv()
 
 
 def get_db():
-    """Open a sqlite3 connection with Row factory enabled."""
-    conn = sqlite3.connect(DATABASE_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    return conn
+    db_url = os.getenv('DATABASE_URL')
+    if not db_url:
+        raise RuntimeError("DATABASE_URL not set in .env file")
+    return SQL(db_url)
 
 
 def login_required(f):
