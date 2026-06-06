@@ -127,7 +127,7 @@ def add_member():
                 
             return render_template('add_member.html', active_page='members')
 
-    return redirect('add_member.html', active_page='members')
+    return render_template('add_member.html', active_page='members')
 
 
 # Handle Recording of New Contributions Workflow Pipeline
