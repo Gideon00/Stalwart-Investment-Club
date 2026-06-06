@@ -325,9 +325,12 @@ def record_repayment(loan_id):
                 session.get('user_id')
             )
 
-            log_audit(db, 'update', 'loans', loan_id,
-                f"Repayment of ₦{actual_payment:,.2f}. "
-                f"Status → '{new_status}'. Balance: ₦{new_balance:,.2f}.",
+            log_audit(
+                db=db,
+                action='update',
+                table_name='loans',
+                record_id=loan_id,
+                description=f"Repayment of ₦{actual_payment:,.2f}. Status → '{new_status}'. Balance: ₦{new_balance:,.2f}.",
                 member_id=session.get('user_id')
             )
 
