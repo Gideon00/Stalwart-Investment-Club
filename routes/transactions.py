@@ -3,37 +3,33 @@ from helpers import get_db, login_required
 
 transactions_bp = Blueprint('transactions', __name__)
 
-
 @transactions_bp.route('/transactions')
 @login_required
 def list_transactions():
-    # Get the CS50 SQL execution object
     db = get_db()
 
-    # Monthly General Stats
-    # CS50 returns a list of dicts; append [0] to extract the single aggregate row
+    # Monthly stats — PostgreSQL date truncation
     res_stats = db.execute("""
         SELECT
             COALESCE(SUM(amount), 0) as total_volume,
             COUNT(*) as total_count
         FROM transactions
-        WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+        WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE)
     """)
     stats = res_stats[0]
 
-    # Monthly Contribution Stats
+    # Monthly contribution stats
     res_contrib = db.execute("""
         SELECT
             COALESCE(SUM(amount), 0) as contribution_total,
             COUNT(*) as contribution_count
         FROM transactions
         WHERE transaction_type = 'contribution'
-        AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+        AND DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE)
     """)
     contrib_stats = res_contrib[0]
 
-    # Full Transaction History List
-    # CS50 automatically retrieves all matching rows into a ready-to-use list of dicts
+    # Full transaction history
     transactions = db.execute("""
         SELECT
             t.id,
@@ -49,6 +45,17 @@ def list_transactions():
         LEFT JOIN members m ON t.created_by = m.id
         ORDER BY t.created_at DESC
     """)
+
+    # PostgreSQL returns datetime objects — format directly
+    for txn in transactions:
+        if txn['created_at']:
+            if isinstance(txn['created_at'], str):
+                from datetime import datetime
+                txn['created_at'] = datetime.strptime(
+                    txn['created_at'].split('.')[0], '%Y-%m-%d %H:%M:%S'
+                ).strftime('%d-%m-%Y %H:%M')
+            else:
+                txn['created_at'] = txn['created_at'].strftime('%d-%m-%Y %H:%M')
 
     return render_template('transactions.html',
         transactions=transactions,
