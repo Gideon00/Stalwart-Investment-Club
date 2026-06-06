@@ -1,7 +1,7 @@
 from datetime import datetime
 from werkzeug.security import generate_password_hash
 from flask import Blueprint, render_template, request, redirect, session, url_for, flash
-from helpers import admin_required, get_db, log_audit, login_required
+from helpers import admin_required, get_db, login_required
 
 members_bp = Blueprint('members', __name__)
 
@@ -102,15 +102,6 @@ def add_member():
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, full_name, password_hash, username, phone, email, address, profile)
 
-            log_audit(
-                db=db,
-                action='create',
-                table_name='members',
-                record_id=new_member_id,
-                description=f"New member account created for {full_name}",
-                member_id=session.get('user_id')
-            )
-
             flash(f"Account created for {full_name}.", "success")
             return redirect(url_for('members.list_members'))
 
@@ -170,16 +161,6 @@ def record_contribution():
                 f"Contribution of ₦{amount:,.2f} via {method} by {member_name} — {reference}",
                 new_contribution_id,
                 session['user_id']
-            )
-
-            # 4. Audit log
-            log_audit(
-                db=db,
-                action='create',
-                table_name='contributions',
-                record_id=new_contribution_id,
-                description=f"Contribution of ₦{amount:,.2f} recorded for {member_name} (ID: {member_id})",
-                member_id=session.get('user_id')
             )
 
             flash("Contribution recorded successfully.", "success")
