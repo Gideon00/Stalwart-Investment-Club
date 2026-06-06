@@ -1,6 +1,5 @@
-from datetime import date, datetime
+from datetime import date
 from flask import Blueprint, render_template, session, redirect, url_for
-
 from helpers import get_db
 
 dashboard_bp = Blueprint('dashboard', __name__)
@@ -9,16 +8,14 @@ dashboard_bp = Blueprint('dashboard', __name__)
 def view_dashboard():
     if 'user_id' not in session:
         return redirect(url_for('auth.login'))
-        
-    # Get the CS50 SQL execution object
+
     db = get_db()
 
-    # Total capital — sum of all contributions ever made
-    # CS50 returns a list of dicts, so we append [0] to grab the first row
+    # Total capital
     res_capital = db.execute("SELECT COALESCE(SUM(amount), 0) as total FROM contributions")
     total_capital = res_capital[0]['total']
 
-    # Active loans — count and total principal outstanding
+    # Active loans
     res_loans = db.execute("""
         SELECT
             COUNT(*) as count,
@@ -26,26 +23,25 @@ def view_dashboard():
             COALESCE(AVG(interest_rate), 0) as avg_rate
         FROM loans WHERE status = 'active'
     """)
-    # Pass the dictionary directly to the template
     loan_stats = res_loans[0]
 
-    # Profit — interest collected on active + completed loans
+    # Profit — all time
     res_profit = db.execute("""
         SELECT COALESCE(SUM(interest_amount), 0) as total
         FROM loans WHERE status IN ('active', 'completed')
     """)
     profit = res_profit[0]['total']
 
-    # Profit this week (Assuming SQLite syntax based on your date string)
+    # Profit this week — PostgreSQL interval syntax
     res_profit_week = db.execute("""
         SELECT COALESCE(SUM(interest_amount), 0) as total
         FROM loans
         WHERE status IN ('active', 'completed')
-        AND created_at >= date('now', '-7 days')
+        AND created_at >= CURRENT_DATE - INTERVAL '7 days'
     """)
     profit_week = res_profit_week[0]['total']
 
-    # Available cash — contributions minus active loan disbursements
+    # Available cash
     res_available = db.execute("""
         SELECT
             (SELECT COALESCE(SUM(amount), 0) FROM contributions) -
@@ -54,18 +50,17 @@ def view_dashboard():
     """)
     available_cash = res_available[0]['available']
 
-    # Liquidity % — available / total capital
+    # Liquidity %
     liquidity_pct = min(round((available_cash / total_capital * 100) if total_capital > 0 else 0), 100)
-    
-    # Overdue loans count
+
+    # Overdue loans — PostgreSQL CURRENT_DATE
     res_overdue = db.execute("""
         SELECT COUNT(*) as count FROM loans
-        WHERE status = 'active' AND due_date < date('now')
+        WHERE status = 'active' AND due_date < CURRENT_DATE
     """)
     overdue_count = res_overdue[0]['count']
 
-    # Recent activity — last 5 transactions with member name
-    # CS50 already returns mutable python dictionaries inside a list!
+    # Recent activity
     recent_activity = db.execute("""
         SELECT
             t.transaction_type,
@@ -78,12 +73,15 @@ def view_dashboard():
         ORDER BY t.created_at DESC
         LIMIT 5
     """)
-    
-    # Convert date format for display
+
+    # Format created_at — PostgreSQL returns a datetime object not a string
+    formatted_activity = []
     for row in recent_activity:
+        row = dict(row)
         if row['created_at']:
-            # No need to explicitly call dict(m) anymore
-            row['created_at'] = datetime.strptime(row['created_at'], '%Y-%m-%d %H:%M:%S').strftime('%d-%m-%Y')
+            # PostgreSQL returns datetime objects directly — no strptime needed
+            row['created_at'] = row['created_at'].strftime('%d-%m-%Y')
+        formatted_activity.append(row)
 
     # Member count
     res_members = db.execute("SELECT COUNT(*) as count FROM members WHERE status = 'active'")
@@ -97,7 +95,7 @@ def view_dashboard():
         available_cash=available_cash,
         liquidity_pct=liquidity_pct,
         overdue_count=overdue_count,
-        recent_activity=recent_activity, # Passing the updated list directly
+        recent_activity=formatted_activity,
         member_count=member_count,
         today=date.today().strftime('%B %d, %Y'),
         active_page='dashboard'
