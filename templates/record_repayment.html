@@ -95,9 +95,9 @@
                     <div class="relative group">
                         <span
                             class="absolute left-md top-1/2 -translate-y-1/2 font-numeric-data text-outline group-focus-within:text-primary transition-colors">₦</span>
-                        <input required type="number" step="0.01" min="0.01" max="{{ loan['balance_remaining'] }}"
-                            id="payment_amount" name="payment_amount" placeholder="0.00"
-                            class="w-full h-12 pl-10 pr-md rounded-lg border-none bg-surface-container-low text-on-surface font-numeric-data placeholder:text-outline-variant focus:ring-2 focus:ring-primary/20" />
+                        <input required type="number" step="0.01" min="0.01"
+                           id="payment_amount" name="payment_amount" placeholder="0.00"
+                           class="w-full h-12 pl-10 pr-md rounded-lg border-none bg-surface-container-low text-on-surface font-numeric-data placeholder:text-outline-variant focus:ring-2 focus:ring-primary/20" />
                     </div>
                     <p class="text-[11px] text-on-surface-variant px-1">
                         Max: ₦{{ "{:,.2f}".format(loan['balance_remaining']) }}
