@@ -1,0 +1,223 @@
+{% extends 'layout.html' %}
+
+{% block title %}Monthly Reports | Stalwart Club{% endblock %}
+{% block page_heading %}Reports{% endblock %}
+
+{% block content %}
+
+{# ── Month selector ── #}
+<section class="mb-lg flex flex-col md:flex-row items-center justify-between gap-md bg-surface-container-lowest p-md rounded-xl shadow-sm">
+    <div>
+        <h2 class="font-headline-md text-on-surface font-semibold">{{ month_label }}</h2>
+        <p class="font-body-sm text-on-surface-variant">Monthly financial summary</p>
+    </div>
+    <div class="flex items-center gap-sm">
+        <form method="GET" action="{{ url_for('reports.view_reports') }}" class="flex items-center gap-sm">
+            <div class="relative">
+                <select name="month" onchange="this.form.submit()"
+                        class="h-10 px-md pr-10 rounded-lg border-none bg-surface-container-low text-on-surface appearance-none cursor-pointer font-label-md focus:ring-2 focus:ring-primary/20">
+                    {% for opt in month_options %}
+                        <option value="{{ opt.value }}" {% if opt.value == month_str %}selected{% endif %}>
+                            {{ opt.label }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-outline text-[18px]">expand_more</span>
+            </div>
+        </form>
+    </div>
+</section>
+
+{# ── Summary cards ── #}
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-md mb-xl">
+
+    <div class="bg-surface-container-lowest p-md rounded-xl border-l-4 border-secondary shadow-sm lg:col-span-2">
+        <p class="font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] mb-xs">Contributions</p>
+        <p class="font-numeric-data text-headline-md text-secondary font-semibold">₦{{ "{:,.2f}".format(contrib_summary['total']) }}</p>
+        <p class="font-body-sm text-on-surface-variant text-[12px] mt-xs">{{ contrib_summary['count'] }} payment{{ 's' if contrib_summary['count'] != 1 else '' }}</p>
+    </div>
+
+    <div class="bg-surface-container-lowest p-md rounded-xl border-l-4 border-error shadow-sm lg:col-span-2">
+        <p class="font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] mb-xs">Loans Disbursed</p>
+        <p class="font-numeric-data text-headline-md text-error font-semibold">₦{{ "{:,.2f}".format(disbursed_summary['total']) }}</p>
+        <p class="font-body-sm text-on-surface-variant text-[12px] mt-xs">{{ disbursed_summary['count'] }} loan{{ 's' if disbursed_summary['count'] != 1 else '' }}</p>
+    </div>
+
+    <div class="bg-surface-container-lowest p-md rounded-xl border-l-4 border-primary shadow-sm lg:col-span-2">
+        <p class="font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] mb-xs">Repayments</p>
+        <p class="font-numeric-data text-headline-md text-primary font-semibold">₦{{ "{:,.2f}".format(repayment_summary['total']) }}</p>
+        <p class="font-body-sm text-on-surface-variant text-[12px] mt-xs">{{ repayment_summary['count'] }} payment{{ 's' if repayment_summary['count'] != 1 else '' }}</p>
+    </div>
+
+    <div class="bg-surface-container-lowest p-md rounded-xl border-l-4 border-tertiary-container shadow-sm">
+        <p class="font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] mb-xs">Interest Earned</p>
+        <p class="font-numeric-data text-on-surface font-semibold">₦{{ "{:,.2f}".format(interest_earned) }}</p>
+    </div>
+
+    <div class="bg-surface-container-lowest p-md rounded-xl border-l-4 border-outline shadow-sm">
+        <p class="font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] mb-xs">Fees Collected</p>
+        <p class="font-numeric-data text-on-surface font-semibold">₦{{ "{:,.2f}".format(fees_collected) }}</p>
+    </div>
+
+    <div class="bg-surface-container-lowest p-md rounded-xl border-l-4 {% if net_movement >= 0 %}border-secondary{% else %}border-error{% endif %} shadow-sm">
+        <p class="font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] mb-xs">Net Movement</p>
+        <p class="font-numeric-data {% if net_movement >= 0 %}text-secondary{% else %}text-error{% endif %} font-semibold">
+            {% if net_movement >= 0 %}+{% endif %}₦{{ "{:,.2f}".format(net_movement) }}
+        </p>
+    </div>
+
+</div>
+
+{# ── Contributions table ── #}
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden mb-lg">
+    <div class="flex items-center justify-between px-lg py-md border-b border-outline-variant">
+        <h3 class="font-headline-md text-on-surface font-semibold flex items-center gap-sm">
+            <span class="material-symbols-outlined text-secondary">savings</span>
+            Contributions
+        </h3>
+        <a href="{{ url_for('reports.download_contributions', month=month_str) }}">
+            <button class="flex items-center gap-xs px-md py-sm bg-surface-container-low hover:bg-surface-container-high rounded-lg font-label-md text-on-surface transition-all active:scale-95">
+                <span class="material-symbols-outlined text-[18px]">download</span>
+                Download CSV
+            </button>
+        </a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-surface-container-low border-b border-outline-variant">
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px]">Member</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] text-right">Amount</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px]">Method</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px]">Reference</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px]">Date</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-outline-variant">
+                {% for row in contributions %}
+                <tr class="hover:bg-surface-container-low transition-colors">
+                    <td class="px-lg py-md font-body-sm text-on-surface">{{ row['member_name'] }}</td>
+                    <td class="px-lg py-md font-numeric-data text-secondary text-right">₦{{ "{:,.2f}".format(row['amount']) }}</td>
+                    <td class="px-lg py-md font-body-sm text-on-surface-variant">{{ row['payment_method'] or '—' }}</td>
+                    <td class="px-lg py-md font-body-sm text-on-surface-variant">{{ row['reference'] or '—' }}</td>
+                    <td class="px-lg py-md font-body-sm text-on-surface-variant">{{ row['contribution_date'] }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="px-lg py-xl text-center text-on-surface-variant font-body-sm">
+                    No contributions recorded for {{ month_label }}.
+                </td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{# ── Loans disbursed table ── #}
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden mb-lg">
+    <div class="flex items-center justify-between px-lg py-md border-b border-outline-variant">
+        <h3 class="font-headline-md text-on-surface font-semibold flex items-center gap-sm">
+            <span class="material-symbols-outlined text-error">outbound</span>
+            Loans Disbursed
+        </h3>
+        <a href="{{ url_for('reports.download_loans', month=month_str) }}">
+            <button class="flex items-center gap-xs px-md py-sm bg-surface-container-low hover:bg-surface-container-high rounded-lg font-label-md text-on-surface transition-all active:scale-95">
+                <span class="material-symbols-outlined text-[18px]">download</span>
+                Download CSV
+            </button>
+        </a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-surface-container-low border-b border-outline-variant">
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px]">Borrower</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] text-right">Principal</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] text-right">Total Repayable</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] text-right">Balance</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px]">Due Date</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px]">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-outline-variant">
+                {% for row in loans_disbursed %}
+                <tr class="hover:bg-surface-container-low transition-colors">
+                    <td class="px-lg py-md font-body-sm text-on-surface">{{ row['borrower_name'] }}</td>
+                    <td class="px-lg py-md font-numeric-data text-on-surface text-right">₦{{ "{:,.2f}".format(row['principal']) }}</td>
+                    <td class="px-lg py-md font-numeric-data text-on-surface text-right">₦{{ "{:,.2f}".format(row['total_repayable']) }}</td>
+                    <td class="px-lg py-md font-numeric-data text-error text-right">₦{{ "{:,.2f}".format(row['balance_remaining']) }}</td>
+                    <td class="px-lg py-md font-body-sm text-on-surface-variant">{{ row['due_date'] }}</td>
+                    <td class="px-lg py-md">
+                        {% if row['status'] == 'active' %}
+                            <span class="px-2 py-1 bg-primary-fixed text-primary rounded-full text-[11px] font-semibold">Active</span>
+                        {% elif row['status'] == 'completed' %}
+                            <span class="px-2 py-1 bg-secondary-container text-on-secondary-container rounded-full text-[11px] font-semibold">Completed</span>
+                        {% elif row['status'] == 'overdue' %}
+                            <span class="px-2 py-1 bg-error-container text-on-error-container rounded-full text-[11px] font-semibold">Overdue</span>
+                        {% else %}
+                            <span class="px-2 py-1 bg-surface-variant text-on-surface-variant rounded-full text-[11px] font-semibold">{{ row['status'].title() }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="px-lg py-xl text-center text-on-surface-variant font-body-sm">
+                    No loans disbursed in {{ month_label }}.
+                </td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{# ── Repayments table ── #}
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden mb-lg">
+    <div class="flex items-center justify-between px-lg py-md border-b border-outline-variant">
+        <h3 class="font-headline-md text-on-surface font-semibold flex items-center gap-sm">
+            <span class="material-symbols-outlined text-primary">payments</span>
+            Repayments Received
+        </h3>
+        <a href="{{ url_for('reports.download_repayments', month=month_str) }}">
+            <button class="flex items-center gap-xs px-md py-sm bg-surface-container-low hover:bg-surface-container-high rounded-lg font-label-md text-on-surface transition-all active:scale-95">
+                <span class="material-symbols-outlined text-[18px]">download</span>
+                Download CSV
+            </button>
+        </a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-surface-container-low border-b border-outline-variant">
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px]">Borrower</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] text-right">Amount Paid</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] text-right">Balance Remaining</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px]">Date</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px]">Loan Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-outline-variant">
+                {% for row in repayments %}
+                <tr class="hover:bg-surface-container-low transition-colors">
+                    <td class="px-lg py-md font-body-sm text-on-surface">{{ row['borrower_name'] }}</td>
+                    <td class="px-lg py-md font-numeric-data text-primary text-right">₦{{ "{:,.2f}".format(row['amount']) }}</td>
+                    <td class="px-lg py-md font-numeric-data text-error text-right">₦{{ "{:,.2f}".format(row['balance_remaining']) }}</td>
+                    <td class="px-lg py-md font-body-sm text-on-surface-variant">{{ row['created_at'] }}</td>
+                    <td class="px-lg py-md">
+                        {% if row['status'] == 'completed' %}
+                            <span class="px-2 py-1 bg-secondary-container text-on-secondary-container rounded-full text-[11px] font-semibold">Completed</span>
+                        {% elif row['status'] == 'overdue' %}
+                            <span class="px-2 py-1 bg-error-container text-on-error-container rounded-full text-[11px] font-semibold">Overdue</span>
+                        {% else %}
+                            <span class="px-2 py-1 bg-primary-fixed text-primary rounded-full text-[11px] font-semibold">{{ row['status'].title() }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="px-lg py-xl text-center text-on-surface-variant font-body-sm">
+                    No repayments recorded in {{ month_label }}.
+                </td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
