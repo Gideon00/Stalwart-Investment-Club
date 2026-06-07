@@ -210,12 +210,11 @@
             <span class="font-label-md text-label-md">Add Member</span>
         </button>
     </a>
-    <a href="{{ url_for('transactions.list_transactions') }}">
-        <button
-            class="w-full flex flex-col items-center justify-center gap-base p-md bg-surface-container-highest text-primary rounded-xl active:scale-95 transition-transform border border-primary-fixed">
-            <span class="material-symbols-outlined">receipt_long</span>
-            <span class="font-label-md text-label-md">Transactions</span>
-        </button>
+    <a href="{{ url_for('reports.view_reports') }}">
+    <button class="w-full flex flex-col items-center justify-center gap-base p-md bg-surface-container-highest text-primary rounded-xl active:scale-95 transition-transform border border-primary-fixed">
+        <span class="material-symbols-outlined">analytics</span>
+        <span class="font-label-md text-label-md">Reports</span>
+    </button>
     </a>
     <a href="{{ url_for('members.record_contribution') }}">
         <button
