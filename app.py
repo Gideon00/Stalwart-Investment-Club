@@ -24,6 +24,7 @@ from routes.members import members_bp
 from routes.transactions import transactions_bp
 from routes.loans import loans_bp
 from routes.auth import auth_bp
+from routes.reports import reports_bp
 
 
 app.register_blueprint(dashboard_bp)
@@ -31,6 +32,7 @@ app.register_blueprint(members_bp)
 app.register_blueprint(transactions_bp)
 app.register_blueprint(loans_bp)
 app.register_blueprint(auth_bp)
+app.register_blueprint(reports_bp)
 
 # Root catch route mapping directly to the main dashboard module
 @app.route('/')
