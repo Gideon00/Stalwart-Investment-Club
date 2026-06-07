@@ -12,14 +12,14 @@ def resolve_loan_status(amount_paid, total_repayable, due_date):
     """
     balance = total_repayable - amount_paid
 
+    # <= 0 covers exact payment and floating point overshoot
     if balance <= 0:
         return 'completed'
 
-    # Handle both date objects (PostgreSQL) and strings (SQLite legacy)
     if isinstance(due_date, str):
         due = datetime.strptime(due_date, '%Y-%m-%d').date()
     else:
-        due = due_date  # already a date object from PostgreSQL
+        due = due_date
 
     today = date.today()
 
@@ -305,9 +305,13 @@ def record_repayment(loan_id):
                 flash("This loan is already fully repaid.", "error")
                 return redirect(url_for('loans.view_loans'))
 
+            # Cap at balance — prevents overpayment entering DB
             actual_payment = min(payment, loan['balance_remaining'])
             new_amount_paid = loan['amount_paid'] + actual_payment
-            new_balance = loan['total_repayable'] - new_amount_paid
+
+            # Floor at 0 — guards against floating point producing -0.000001
+            new_balance = max(0.0, loan['total_repayable'] - new_amount_paid)
+
             new_status = resolve_loan_status(
                 new_amount_paid, loan['total_repayable'], loan['due_date']
             )
@@ -331,6 +335,12 @@ def record_repayment(loan_id):
                  + (f" Note: {notes}" if notes else "")),
                 loan_id,
                 session.get('user_id')
+            )
+
+            log_audit(db, 'update', 'loans', loan_id,
+                f"Repayment of ₦{actual_payment:,.2f}. "
+                f"Status → '{new_status}'. Balance: ₦{new_balance:,.2f}.",
+                member_id=session.get('user_id')
             )
 
             status_msg = " Loan marked as completed!" if new_status == 'completed' else ""
@@ -359,8 +369,6 @@ def record_repayment(loan_id):
             return redirect(url_for('loans.view_loans'))
 
         loan = dict(res_raw_loan[0])
-
-        # PostgreSQL returns date objects — format directly
         loan['due_date'] = fmt_date(loan.get('due_date'), '%b %d, %Y')
         loan['loan_start_date'] = fmt_date(loan.get('loan_start_date'), '%b %d, %Y')
 
@@ -373,7 +381,6 @@ def record_repayment(loan_id):
             ORDER BY created_at DESC
         """, loan_id)
 
-        # PostgreSQL returns datetime objects — format directly
         repayment_history = []
         for item in raw_history:
             item = dict(item)
