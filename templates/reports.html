@@ -100,7 +100,7 @@
                 <tr class="hover:bg-surface-container-low transition-colors">
                     <td class="px-lg py-md font-body-sm text-on-surface">{{ row['borrower_name'] }}</td>
                     <td class="px-lg py-md font-numeric-data text-primary text-right">
-                        ₦{{ "{:,.2f}".format(row['amount_paid']) }}
+                        ₦{{ "{:,.2f}".format(row['amount_paid'] | default(0)) }}
                     </td>
                     <td class="px-lg py-md font-numeric-data text-on-surface text-right">
                         ₦{{ "{:,.2f}".format(row['cumulative_paid']) }}
