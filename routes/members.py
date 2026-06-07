@@ -163,6 +163,17 @@ def record_contribution():
                 session['user_id']
             )
 
+            # 2. Update members table with new total contributions
+            db.execute("""
+                UPDATE members
+                SET contributions = (
+                    SELECT COALESCE(SUM(amount), 0)
+                    FROM contributions
+                    WHERE member_id = %s
+                )
+                WHERE id = %s
+            """, (member_id, member_id))  # Wrapped safely inside an explicit tuple ()
+            
             flash("Contribution recorded successfully.", "success")
             return redirect(url_for('transactions.list_transactions'))
 
