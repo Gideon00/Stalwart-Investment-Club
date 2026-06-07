@@ -86,52 +86,29 @@
         <table class="w-full text-left border-collapse">
             <thead>
                 <tr class="bg-surface-container-low border-b border-outline-variant">
-                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px]">Borrower</th>
-                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] text-right">This Payment</th>
-                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] text-right">Total Paid</th>
-                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] text-right">Total Repayable</th>
-                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] text-right">Balance</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px]">Member Name</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] text-right">Amount</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px]">Payment Method</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px]">Reference</th>
                     <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px]">Date</th>
-                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px]">Status</th>
+                    <th class="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-[11px]">Notes</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-outline-variant">
-                {% for row in repayments %}
+                {% for row in contributions %}
                 <tr class="hover:bg-surface-container-low transition-colors">
-                    <td class="px-lg py-md font-body-sm text-on-surface">{{ row['borrower_name'] }}</td>
-                    <td class="px-lg py-md font-numeric-data text-primary text-right">
-                        ₦{{ "{:,.2f}".format(row['amount_paid'] | default(0)) }}
+                    <td class="px-lg py-md font-body-sm text-on-surface">{{ row['member_name'] }}</td>
+                    <td class="px-lg py-md font-numeric-data text-secondary text-right">
+                        ₦{{ "{:,.2f}".format(row['amount']) }}
                     </td>
-                    <td class="px-lg py-md font-numeric-data text-on-surface text-right">
-                        ₦{{ "{:,.2f}".format(row['cumulative_paid']) }}
-                    </td>
-                    <td class="px-lg py-md font-numeric-data text-on-surface-variant text-right">
-                        ₦{{ "{:,.2f}".format(row['total_repayable']) }}
-                    </td>
-                    <td class="px-lg py-md font-numeric-data text-right
-                        {% if row['balance_remaining'] <= 0 %}text-secondary
-                        {% elif row['status'] == 'overdue' %}text-error font-semibold
-                        {% else %}text-on-surface{% endif %}">
-                        {% if row['balance_remaining'] <= 0 %}
-                            Settled
-                        {% else %}
-                            ₦{{ "{:,.2f}".format(row['balance_remaining']) }}
-                        {% endif %}
-                    </td>
-                    <td class="px-lg py-md font-body-sm text-on-surface-variant">{{ row['created_at'] }}</td>
-                    <td class="px-lg py-md">
-                        {% if row['status'] == 'completed' %}
-                            <span class="px-2 py-1 bg-secondary-container text-on-secondary-container rounded-full text-[11px] font-semibold">Completed</span>
-                        {% elif row['status'] == 'overdue' %}
-                            <span class="px-2 py-1 bg-error-container text-on-error-container rounded-full text-[11px] font-semibold">Overdue</span>
-                        {% else %}
-                            <span class="px-2 py-1 bg-primary-fixed text-primary rounded-full text-[11px] font-semibold">{{ row['status'].title() }}</span>
-                        {% endif %}
-                    </td>
+                    <td class="px-lg py-md font-body-sm text-on-surface-variant">{{ row['payment_method'] or '—' }}</td>
+                    <td class="px-lg py-md font-body-sm text-on-surface-variant">{{ row['reference'] or '—' }}</td>
+                    <td class="px-lg py-md font-body-sm text-on-surface-variant">{{ row['contribution_date'] }}</td>
+                    <td class="px-lg py-md font-body-sm text-on-surface-variant italic text-[13px] text-outline">{{ row['notes'] or '' }}</td>
                 </tr>
                 {% else %}
-                <tr><td colspan="7" class="px-lg py-xl text-center text-on-surface-variant font-body-sm">
-                    No repayments recorded in {{ month_label }}.
+                <tr><td colspan="6" class="px-lg py-xl text-center text-on-surface-variant font-body-sm">
+                    No contributions recorded in {{ month_label }}.
                 </td></tr>
                 {% endfor %}
             </tbody>        
@@ -233,7 +210,7 @@
                         {% elif row['status'] == 'overdue' %}
                             <span class="px-2 py-1 bg-error-container text-on-error-container rounded-full text-[11px] font-semibold">Overdue</span>
                         {% else %}
-                            <span class="px-2 py-1 bg-primary-fixed text-primary rounded-full text-[11px] font-semibold">{{ row['status'].title() }}</span>
+                            <span class="px-2 py-1 bg-primary-fixed text-primary rounded-full text-[11px] font-semibold">{{ (row['status'] or 'active').title() }}</span>
                         {% endif %}
                     </td>
                 </tr>
