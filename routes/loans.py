@@ -144,7 +144,15 @@ def view_loans():
                 "date_label": date_label
             })
 
-        processed_portfolio.sort(key=lambda x: x['date_label'])
+        processed_portfolio.sort(
+            key=lambda x: (
+                # 1. Primary Sort: Push 'Paid' (True/1) below 'Due' (False/0)
+                x['date_label'].startswith('Paid:'),
+                
+                # 2. Secondary Sort: Extract and parse the string date into an actual datetime object
+                datetime.strptime(x['date_label'].split(': ')[1], '%d-%m-%Y')
+            )
+        )
 
         return render_template(
             'loans.html',
