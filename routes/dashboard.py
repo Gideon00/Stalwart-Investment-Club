@@ -44,9 +44,12 @@ def view_dashboard():
     # Available cash
     res_available = db.execute("""
         SELECT
-            (SELECT COALESCE(SUM(amount), 0) FROM contributions) -
-            (SELECT COALESCE(SUM(principal), 0) FROM loans WHERE status = 'active')
-            as available
+            (SELECT COALESCE(SUM(amount), 0) FROM contributions) +
+            (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transaction_type = 'repayment') +
+            -- Add all non-refunded fees collected
+            (SELECT COALESCE(SUM(amount), 0) FROM fees WHERE is_refunded = 0) -
+            (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transaction_type = 'loan_disbursement')
+            AS available;
     """)
     available_cash = res_available[0]['available']
 
