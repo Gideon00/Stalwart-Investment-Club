@@ -69,7 +69,7 @@
 
                 {% if transactions %}
                     {% for txn in transactions %}
-                    <tr class="transaction-row hover:bg-surface-container-low transition-colors">
+                    <tr class="transaction-row hover:bg-surface-container-low transition-colors" data-type="{{ txn['transaction_type'] }}">
 
                         {# Date #}
                         <td class="px-lg py-md whitespace-nowrap">
@@ -214,10 +214,11 @@
 
     function filterRows() {
         const text = searchInput.value.toLowerCase();
-        const type = typeFilter.value.toLowerCase();
+        const type = typeFilter.value;
+    
         document.querySelectorAll('.transaction-row').forEach(row => {
             const matchText = row.innerText.toLowerCase().includes(text);
-            const matchType = type === '' || row.innerText.toLowerCase().includes(type.replace('_', ' '));
+            const matchType = type === '' || row.dataset.type === type;
             row.style.display = matchText && matchType ? '' : 'none';
         });
     }
