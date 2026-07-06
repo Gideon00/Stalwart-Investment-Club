@@ -47,7 +47,7 @@ def view_dashboard():
             (SELECT COALESCE(SUM(amount), 0) FROM contributions) +
             (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transaction_type = 'repayment') +
             -- Add all non-refunded fees collected
-            (SELECT COALESCE(SUM(amount), 0) FROM fees WHERE is_refunded = 0) -
+            (SELECT COALESCE(SUM(amount), 0) FROM fees WHERE is_refunded = FALSE) -
             (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transaction_type = 'loan_disbursement')
             AS available;
     """)
