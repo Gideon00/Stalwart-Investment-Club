@@ -246,7 +246,7 @@ def add_loan():
             )
 
             # STEP 6: STAMP DUTY
-            if principal > 10000:
+            if principal > 9999:
                 db.execute("""
                     INSERT INTO fees (loan_id, fee_type, amount, payer_type, payer_id)
                     VALUES (%s, 'stamp duty', 50.0, 'borrower', %s)
@@ -335,12 +335,6 @@ def record_repayment(loan_id):
                  + (f" Note: {notes}" if notes else "")),
                 loan_id,
                 session.get('user_id')
-            )
-
-            log_audit(db, 'update', 'loans', loan_id,
-                f"Repayment of ₦{actual_payment:,.2f}. "
-                f"Status → '{new_status}'. Balance: ₦{new_balance:,.2f}.",
-                member_id=session.get('user_id')
             )
 
             status_msg = " Loan marked as completed!" if new_status == 'completed' else ""
