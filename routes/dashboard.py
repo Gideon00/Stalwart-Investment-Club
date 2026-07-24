@@ -52,7 +52,7 @@ def view_dashboard():
             (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transaction_type = 'loan_disbursement') -
             
             -- Cash Outflows (Non-refunded fee expenses borne by the group/organization)
-            (SELECT COALESCE(SUM(amount), 0) FROM fees WHERE is_refunded = FALSE)
+            (SELECT COALESCE(SUM(amount), 0) FROM fees WHERE is_refunded = TRUE)
             
         AS available;
     """)
