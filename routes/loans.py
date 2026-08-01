@@ -305,11 +305,13 @@ def record_repayment(loan_id):
                 flash("This loan is already fully repaid.", "error")
                 return redirect(url_for('loans.view_loans'))
 
-            # Cap at balance — prevents overpayment entering DB
-            actual_payment = min(payment, loan['balance_remaining'])
-            new_amount_paid = loan['amount_paid'] + actual_payment
+            # Accept the full payment — no cap
+            new_amount_paid = loan['amount_paid'] + payment
 
-            # Floor at 0 — guards against floating point producing -0.000001
+            # Overpayment amount — could be a tip, penalty, or overdue charge
+            overpayment = max(0.0, new_amount_paid - loan['total_repayable'])
+
+            # Balance floors at 0 — never goes negative in the DB
             new_balance = max(0.0, loan['total_repayable'] - new_amount_paid)
 
             new_status = resolve_loan_status(
@@ -322,72 +324,37 @@ def record_repayment(loan_id):
                 WHERE id = %s
             """, new_amount_paid, new_balance, new_status, loan_id)
 
+            # Build description — note overpayment if present
+            if overpayment > 0:
+                extra_note = (f" Includes ₦{overpayment:,.2f} above total repayable "
+                            f"(tip/penalty/overdue charge).")
+            else:
+                extra_note = ""
+
             db.execute("""
                 INSERT INTO transactions (
                     transaction_type, amount, description,
                     reference_id, reference_table, created_by
                 ) VALUES ('repayment', %s, %s, %s, 'loans', %s)
             """,
-                actual_payment,
-                (f"Repayment of ₦{actual_payment:,.2f} on loan #{loan_id:04d} "
-                 f"by {loan['borrower_name']} via {payment_method}. "
-                 f"Balance: ₦{new_balance:,.2f}. Status → {new_status}."
-                 + (f" Note: {notes}" if notes else "")),
+                payment,  # full amount — not capped
+                (f"Repayment of ₦{payment:,.2f} on loan #{loan_id:04d} "
+                f"by {loan['borrower_name']} via {payment_method}. "
+                f"Balance: ₦{new_balance:,.2f}. Status → {new_status}."
+                + extra_note
+                + (f" Note: {notes}" if notes else "")),
                 loan_id,
                 session.get('user_id')
             )
 
             status_msg = " Loan marked as completed!" if new_status == 'completed' else ""
-            flash(f"Repayment of ₦{actual_payment:,.2f} recorded for {loan['borrower_name']}.{status_msg}", "success")
+            overpay_msg = f" ₦{overpayment:,.2f} recorded as extra payment." if overpayment > 0 else ""
+            flash(
+                f"Repayment of ₦{payment:,.2f} recorded for {loan['borrower_name']}.{status_msg}{overpay_msg}",
+                "success"
+            )
             return redirect(url_for('loans.view_loans'))
 
         except Exception as e:
             flash(f"Database error: {str(e)}", "error")
             return redirect(url_for('loans.record_repayment', loan_id=loan_id))
-
-    # GET
-    try:
-        res_raw_loan = db.execute("""
-            SELECT
-                l.id, l.principal, l.interest_rate, l.total_repayable,
-                l.amount_paid, l.balance_remaining, l.due_date,
-                l.loan_start_date, l.status,
-                b.full_name as borrower_name, b.phone, b.occupation
-            FROM loans l
-            JOIN borrowers b ON l.borrower_id = b.id
-            WHERE l.id = %s
-        """, loan_id)
-
-        if not res_raw_loan:
-            flash("Loan not found.", "error")
-            return redirect(url_for('loans.view_loans'))
-
-        loan = dict(res_raw_loan[0])
-        loan['due_date'] = fmt_date(loan.get('due_date'), '%b %d, %Y')
-        loan['loan_start_date'] = fmt_date(loan.get('loan_start_date'), '%b %d, %Y')
-
-        raw_history = db.execute("""
-            SELECT amount, description, created_at
-            FROM transactions
-            WHERE reference_table = 'loans'
-            AND reference_id = %s
-            AND transaction_type = 'repayment'
-            ORDER BY created_at DESC
-        """, loan_id)
-
-        repayment_history = []
-        for item in raw_history:
-            item = dict(item)
-            if item.get('created_at'):
-                item['created_at'] = fmt_date(item['created_at'], '%b %d, %Y %I:%M %p')
-            repayment_history.append(item)
-
-    except Exception as e:
-        flash(f"Database error: {str(e)}", "error")
-        return redirect(url_for('loans.view_loans'))
-
-    return render_template('record_repayment.html',
-        active_page='loans',
-        loan=loan,
-        repayment_history=repayment_history
-    )
