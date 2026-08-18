@@ -269,7 +269,6 @@ def add_loan():
 
     return render_template('add_loan.html', active_page='loans', existing_borrowers=historical_borrowers_list)
 
-
 @loans_bp.route('/loans/<int:loan_id>/repayment', methods=['GET', 'POST'])
 @admin_required
 def record_repayment(loan_id):
@@ -286,7 +285,7 @@ def record_repayment(loan_id):
 
         try:
             res_loan = db.execute("""
-                SELECT
+                SELECT 
                     l.id, l.principal, l.total_repayable, l.amount_paid,
                     l.balance_remaining, l.due_date, l.status,
                     b.full_name as borrower_name, l.borrower_id
@@ -319,7 +318,7 @@ def record_repayment(loan_id):
             )
 
             db.execute("""
-                UPDATE loans
+                UPDATE loans 
                 SET amount_paid = %s, balance_remaining = %s, status = %s
                 WHERE id = %s
             """, new_amount_paid, new_balance, new_status, loan_id)
@@ -333,11 +332,11 @@ def record_repayment(loan_id):
 
             db.execute("""
                 INSERT INTO transactions (
-                    transaction_type, amount, description,
+                    transaction_type, amount, description, 
                     reference_id, reference_table, created_by
                 ) VALUES ('repayment', %s, %s, %s, 'loans', %s)
-            """,
-                payment,  # full amount — not capped
+            """, 
+                payment,
                 (f"Repayment of ₦{payment:,.2f} on loan #{loan_id:04d} "
                 f"by {loan['borrower_name']} via {payment_method}. "
                 f"Balance: ₦{new_balance:,.2f}. Status → {new_status}."
@@ -358,3 +357,34 @@ def record_repayment(loan_id):
         except Exception as e:
             flash(f"Database error: {str(e)}", "error")
             return redirect(url_for('loans.record_repayment', loan_id=loan_id))
+
+    # --- GET REQUEST HANDLER (Fix for 500 error) ---
+    # --- GET Request Handler ---
+    res_loan = db.execute("""
+        SELECT 
+            l.id, l.principal, l.total_repayable, l.amount_paid,
+            l.balance_remaining, l.due_date, l.status,
+            b.full_name as borrower_name, b.occupation, b.phone,
+            l.loan_start_date, l.interest_rate, l.borrower_id
+        FROM loans l
+        JOIN borrowers b ON l.borrower_id = b.id
+        WHERE l.id = %s
+    """, loan_id)
+
+    loan = res_loan[0] if res_loan else None
+
+    if not loan:
+        flash("Loan record not found.", "error")
+        return redirect(url_for('loans.view_loans'))
+
+    # Fetch repayment history using your exact transactions schema
+    repayment_history = db.execute("""
+        SELECT amount, created_at, description
+        FROM transactions
+        WHERE reference_id = %s 
+          AND reference_table = 'loans' 
+          AND transaction_type = 'repayment'
+        ORDER BY created_at DESC
+    """, loan_id)
+
+    return render_template('record_repayment.html', loan=loan, repayment_history=repayment_history)
