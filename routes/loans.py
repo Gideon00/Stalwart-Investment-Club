@@ -174,13 +174,18 @@ def add_loan():
     if request.method == 'POST':
         is_existing = request.form.get('is_existing') == 'true'
         principal = float(request.form.get('principal') or 0)
+        interest_rate = float(request.form.get('interest_rate') or 0)
 
         if principal <= 0:
             flash("Invalid principal amount.", "error")
             return redirect(url_for('loans.add_loan'))
 
         try:
-            # STEP 1: RESOLVE BORROWER
+            # START DATABASE TRANSACTION IF APPLICABLE (e.g. db.begin() or connection context)
+            
+            # -----------------------------------------------------------------
+            # STEP 1: RESOLVE BORROWER & PREVENT CONCURRENT LOANS
+            # -----------------------------------------------------------------
             if is_existing:
                 borrower_id = request.form.get('borrower_id', type=int)
                 if not borrower_id:
@@ -190,7 +195,21 @@ def add_loan():
                 res_borrower = db.execute(
                     "SELECT full_name FROM borrowers WHERE id = %s", borrower_id
                 )
-                borrower_name = res_borrower[0]['full_name'] if res_borrower else "Existing Borrower"
+                if not res_borrower:
+                    flash("Selected borrower does not exist.", "error")
+                    return redirect(url_for('loans.add_loan'))
+
+                borrower_name = res_borrower[0]['full_name']
+
+                # IDEMPOTENCY CHECK 1: Disallow multiple active open loans
+                active_loan = db.execute(
+                    "SELECT id FROM loans WHERE borrower_id = %s AND balance_remaining > 0 LIMIT 1",
+                    borrower_id
+                )
+                if active_loan:
+                    flash(f"Disbursement blocked: {borrower_name} already has an active unpaid loan.", "error")
+                    return redirect(url_for('loans.add_loan'))
+
             else:
                 borrower_name = request.form.get('full_name', '').strip().title()
                 phone = request.form.get('phone', '').strip()
@@ -203,20 +222,33 @@ def add_loan():
                     flash("Borrower name is required.", "error")
                     return redirect(url_for('loans.add_loan'))
 
+                # IDEMPOTENCY CHECK 2: Catch duplicate new borrower creation by phone within same session
+                if phone:
+                    existing_by_phone = db.execute(
+                        "SELECT id FROM borrowers WHERE phone = %s", phone
+                    )
+                    if existing_by_phone:
+                        flash("A borrower with this phone number already exists.", "error")
+                        return redirect(url_for('loans.add_loan'))
+
                 borrower_id = db.execute("""
                     INSERT INTO borrowers (
                         full_name, phone, address, occupation, guarantor_name, guarantor_phone
                     ) VALUES (%s, %s, %s, %s, %s, %s)
                 """, borrower_name, phone, address, occupation, guarantor_name, guarantor_phone)
 
-            # STEP 2: CALCULATE
-            interest_rate = float(request.form.get('interest_rate') or 0)
+            # -----------------------------------------------------------------
+            # STEP 2: FINANCIAL CALCULATIONS
+            # -----------------------------------------------------------------
             interest_amount = principal * (interest_rate / 100)
             total_repayable = principal + interest_amount
             loan_start_date = date.today()
             due_date = loan_start_date + timedelta(days=30)
+            user_id = session.get('user_id')
 
-            # STEP 3: INSERT LOAN
+            # -----------------------------------------------------------------
+            # STEP 3: INSERT LOAN RECORD
+            # -----------------------------------------------------------------
             new_loan_id = db.execute("""
                 INSERT INTO loans (
                     borrower_id, principal, interest_rate, interest_amount,
@@ -225,10 +257,12 @@ def add_loan():
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, borrower_id, principal, interest_rate, interest_amount,
                 total_repayable, total_repayable,
-                loan_start_date, due_date, session['user_id']
+                loan_start_date, due_date, user_id
             )
 
+            # -----------------------------------------------------------------
             # STEP 4: LOG TRANSACTION
+            # -----------------------------------------------------------------
             db.execute("""
                 INSERT INTO transactions (
                     transaction_type, amount, description, reference_id, reference_table, created_by
@@ -237,29 +271,36 @@ def add_loan():
                 principal,
                 f"Loan of ₦{principal:,.2f} disbursed to {borrower_name} at {interest_rate}% APR.",
                 new_loan_id,
-                session.get('user_id')
+                user_id
             )
 
-            # STEP 5: UPDATE BORROWER LOAN COUNT
+            # -----------------------------------------------------------------
+            # STEP 5: UPDATE BORROWER LOAN METRICS
+            # -----------------------------------------------------------------
             db.execute(
                 "UPDATE borrowers SET total_loan = total_loan + 1 WHERE id = %s", borrower_id
             )
 
-            # STEP 6: STAMP DUTY
+            # -----------------------------------------------------------------
+            # STEP 6: APPLY STAMP DUTY FEE
+            # -----------------------------------------------------------------
             if principal > 9999:
                 db.execute("""
                     INSERT INTO fees (loan_id, fee_type, amount, payer_type, payer_id)
                     VALUES (%s, 'stamp duty', 50.0, 'borrower', %s)
                 """, new_loan_id, borrower_id)
 
+            # COMMIT TRANSACTION HERE (e.g. db.commit())
+
             flash(f"Loan disbursed successfully for {borrower_name}.", "success")
             return redirect(url_for('loans.view_loans'))
 
         except Exception as e:
+            # ROLLBACK TRANSACTION HERE (e.g. db.rollback())
             flash(f"Database error: {str(e)}", "error")
             return redirect(url_for('loans.add_loan'))
 
-    # GET
+    # GET REQUEST
     try:
         historical_borrowers_list = db.execute(
             "SELECT id, full_name, phone, address, occupation FROM borrowers ORDER BY full_name ASC"
