@@ -137,28 +137,49 @@
 
 {% block scripts %}
 <script>
+    const form = document.getElementById('loanForm');
+    const submitBtn = form.querySelector('button[type="submit"]');
     const toggleCheckbox = document.getElementById('is_existing');
     const existingPanel = document.getElementById('existing_borrower_panel');
     const newPanel = document.getElementById('new_borrower_panel');
     
-    // Core inputs fields to handle read-only vs writable states
+    // Core inputs fields
     const nameInput = document.getElementById('full_name');
     const phoneInput = document.getElementById('phone');
     const occupationInput = document.getElementById('occupation');
     const addressInput = document.getElementById('address');
     const borrowerSelect = document.getElementById('borrower_id');
 
-    // Toggles interface parameters cleanly based on state changes
-    toggleCheckbox.addEventListener('change', function() {
-        if (this.checked) {
+    // 1. Prevent Double Submission
+    form.addEventListener('submit', function (e) {
+        if (submitBtn.disabled) {
+            e.preventDefault();
+            return false;
+        }
+
+        // Lock button UI instantly upon submit
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+        submitBtn.innerHTML = `
+            <div class="flex items-center justify-center gap-2">
+                <svg class="animate-spin h-5 w-5 text-on-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Processing Disbursement...</span>
+            </div>
+        `;
+    });
+
+    // 2. Toggle Borrower Types
+    function syncBorrowerType() {
+        if (toggleCheckbox.checked) {
             existingPanel.classList.remove('hidden');
             newPanel.classList.add('hidden');
             
-            // Requirements shift dynamically to prevent browser blockages
             nameInput.required = false;
             borrowerSelect.required = true;
             
-            // Set fields to read-only style locks to match system settings
             setFieldsReadOnly(true);
             triggerSelectLookup();
         } else {
@@ -171,8 +192,9 @@
             setFieldsReadOnly(false);
             clearBiodataForm();
         }
-    });
+    }
 
+    toggleCheckbox.addEventListener('change', syncBorrowerType);
     borrowerSelect.addEventListener('change', triggerSelectLookup);
 
     function triggerSelectLookup() {
@@ -189,7 +211,6 @@
         occupationInput.readOnly = isTrue;
         addressInput.readOnly = isTrue;
 
-        // Apply background tint to visually convey the field lock state
         const fields = [phoneInput, occupationInput, addressInput];
         fields.forEach(f => {
             if (isTrue) f.classList.add('opacity-70', 'cursor-not-allowed');
@@ -205,10 +226,9 @@
         addressInput.value = "";
     }
 
-    // Live calculation interest tracking loops
+    // 3. Live calculation interest tracking loops
     const principalInput = document.getElementById('principal');
     const interestInput = document.getElementById('interest');
-    // const estPayment = document.getElementById('estPayment');
     const totalInterest = document.getElementById('totalInterest');
 
     function executeLiveCalculations() {
@@ -220,24 +240,11 @@
         totalInterest.textContent = `₦${totalInt.toLocaleString('en-NG', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     }
 
-    
     principalInput.addEventListener('input', executeLiveCalculations);
     interestInput.addEventListener('input', executeLiveCalculations);
 
-    // Initialise on load
+    // Run initial state checks on DOM load
+    syncBorrowerType();
     executeLiveCalculations();
-
-
-    // function executeLiveCalculations() {
-    //     const p = parseFloat(principalInput.value) || 0;
-    //     const r = (parseFloat(interestInput.value) || 0) / 100;
-        
-    //     const totalInt = p * r;
-    //     const monthlyEst = (p + totalInt) / 12;
-
-    //     estPayment.textContent = `₦${monthlyEst.toLocaleString('en-NG', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-    //     totalInterest.textContent = `₦${totalInt.toLocaleString('en-NG', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-    // }
- 
 </script>
 {% endblock %}
