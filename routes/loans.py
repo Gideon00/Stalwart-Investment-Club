@@ -200,16 +200,6 @@ def add_loan():
                     return redirect(url_for('loans.add_loan'))
 
                 borrower_name = res_borrower[0]['full_name']
-
-                # IDEMPOTENCY CHECK 1: Disallow multiple active open loans
-                active_loan = db.execute(
-                    "SELECT id FROM loans WHERE borrower_id = %s AND balance_remaining > 0 LIMIT 1",
-                    borrower_id
-                )
-                if active_loan:
-                    flash(f"Disbursement blocked: {borrower_name} already has an active unpaid loan.", "error")
-                    return redirect(url_for('loans.add_loan'))
-
             else:
                 borrower_name = request.form.get('full_name', '').strip().title()
                 phone = request.form.get('phone', '').strip()
