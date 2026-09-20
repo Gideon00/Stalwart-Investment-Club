@@ -46,6 +46,7 @@ def view_dashboard():
         SELECT
             -- Cash Inflows
             (SELECT COALESCE(SUM(amount), 0) FROM contributions) +
+            (SELECT COALESCE(SUM(amount), 0) FROM fees WHERE is_refunded = FALSE) +
             (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transaction_type = 'repayment') -
             
             -- Cash Outflows (Loan Disbursements)
